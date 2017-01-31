@@ -43,10 +43,12 @@
   #+END_SRC
 
 * Steps
-  1. Camera Calibration
-  2. Distortion Correction
-  3. Color & Gradient Threshold
-  4. Perspective Transform
+  1. Measure Distortion
+  2. Calibrate Camera
+  3. Correct Distortion
+  4. Threshold Color and Gradient
+  5. Transform Perspective
+  6. 
 
 * Histogram
 
