@@ -45,7 +45,7 @@ def region_of_interest(img, vertices):
         ignore_mask_color = 255
         
     #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask.astype('uint8'), vertices, ignore_mask_color)
+    cv2.fillPoly(mask, vertices, ignore_mask_color)
     
     #returning the image only where mask pixels are nonzero
     masked_image = cv2.bitwise_and(img, mask)
@@ -168,3 +168,6 @@ def edge_image(img):
 
 def mask_image(img, vertices):
     return region_of_interest(img, vertices)
+
+
+# Additional helper functions added for Project 4

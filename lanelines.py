@@ -1,14 +1,14 @@
 from itertools import groupby, islice, zip_longest, cycle, filterfalse
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 from matplotlib.widgets import Button
+from util import *
 import cv2
 import glob
+import matplotlib
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
-import util
-
-
-plt.ion()
 
 
 # Camera Calibration
@@ -40,22 +40,19 @@ undistort,_ = get_undistorter(glob.glob("camera_cal/*.jpg"))
 
 # Perspective Transform
 
-def measure_warp(corrected_image):
+def measure_warp(img):
     def handler(e):
-        if len(src)<1:
-            plt.axvline(int(e.xdata), linewidth=2, color='r')
         if len(src)<4:
-            src.append((int(e.xdata),int(e.ydata)))
-        if len(src)<3:
             plt.axhline(int(e.ydata), linewidth=2, color='r')
-        if len(src)==4:
             plt.axvline(int(e.xdata), linewidth=2, color='r')
+            src.append((int(e.xdata),int(e.ydata)))
+        if len(src)==4:
             dst.extend([src[0], (src[0][0],src[1][1]), (src[3][0],src[2][1]), src[3]])
-        else:
-            pass
-    plt.ion()
+    was_interactive = matplotlib.is_interactive()
+    if not matplotlib.is_interactive():
+        plt.ion()
     fig = plt.figure()
-    plt.imshow(corrected_image)
+    plt.imshow(img)
     global src
     global dst
     src = []
@@ -65,6 +62,7 @@ def measure_warp(corrected_image):
     fig.canvas.start_event_loop(timeout=-1)
     M = cv2.getPerspectiveTransform(np.asfarray(src, np.float32), np.asfarray(dst, np.float32))
     Minv = cv2.getPerspectiveTransform(np.asfarray(dst, np.float32), np.asfarray(src, np.float32))
+    matplotlib.interactive(was_interactive)
     return M, Minv
 
 
@@ -139,19 +137,15 @@ builtins.theta = {
     'max_line_gap':1}
 
 
-def mask_image(img, vertices):
-    return region_of_interest(img, vertices)
-
-
 def process(img):
     img = np.copy(img)
     img = undistort(img)
     h,l,s = hls_select(img)
     r,g,b = rgb_select(img)
-    g = util.blur_image(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
-    grad_g = grad(util.blur_image(g),k1=3,k2=15)
-    grad_r = grad(util.blur_image(r),k1=3,k2=15)
-    grad_s = grad(util.blur_image(s),k1=3,k2=15)
+    g = blur_image(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+    grad_g = grad(blur_image(g),k1=3,k2=15)
+    grad_r = grad(blur_image(r),k1=3,k2=15)
+    grad_s = grad(blur_image(s),k1=3,k2=15)
     o0 = threshold(g, 180, 255)
     o1 = threshold(r, 200, 255)
     o2 = threshold(s, 90, 255)
@@ -159,10 +153,13 @@ def process(img):
     o4 = sand(threshold(grad_r[0], 40, 255), threshold(grad_r[1], 0.7, 1.3))
     o5 = sand(threshold(grad_s[0], 40, 255), threshold(grad_s[1], 0.7, 1.3))
     o6 = sor(o1,o3,o4,o5)
-    o7 = util.mask_image(scale(o6), util.trapezoid(img)[:,:,::-1])
+    o7 = mask_image(scale(o6), trapezoid(img)[:,:,::-1])
     o8 = scale(unwarp(o7), factor=1)
-    return o8
+    return o7
 
+
+def mask_image(img, vertices):
+    return region_of_interest(img, vertices)
 
 
 sand = lambda *x: np.logical_and.reduce(x)
