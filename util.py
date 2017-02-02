@@ -6,7 +6,9 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 # Udacity helper functions
+
 def grayscale(img):
     """Applies the Grayscale transform
     This will return an image with only one color channel
@@ -14,13 +16,16 @@ def grayscale(img):
     you should call plt.imshow(gray, cmap='gray')"""
     return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
+
 def canny(img, low_threshold, high_threshold):
     """Applies the Canny transform"""
     return cv2.Canny(img, low_threshold, high_threshold)
 
+
 def gaussian_blur(img, kernel_size):
     """Applies a Gaussian Noise kernel"""
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+
 
 def region_of_interest(img, vertices):
     """
@@ -68,6 +73,7 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
         for x1,y1,x2,y2 in line:
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
+
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     """
     `img` should be the output of a Canny transform.
@@ -78,6 +84,7 @@ def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     line_img = np.zeros((*img.shape, 3), dtype=np.uint8)
     draw_lines(line_img, lines)
     return line_img
+
 
 # Python 3 has support for cool math symbols.
 
@@ -95,11 +102,15 @@ def weighted_img(img, initial_img, α=0.8, β=1., λ=0.):
     """
     return cv2.addWeighted(initial_img, α, img, β, λ)
 
+
 # Define function y=f(x,m,b) and inverse function x=g(y,m,b).
+
 y = lambda x,m,b: m*x+b
 x = lambda y,m,b: (y-b)/m
 
+
 # Define useful image features as functions.
+
 top = lambda img: 0
 bottom = lambda img: int(img.shape[0])
 hood = lambda img: bottom(img)*(1-theta['hood'])
@@ -126,46 +137,34 @@ trapezoid_pts = lambda img,m,b: ((int(x(hood(img),m,b)), int(hood(img))),
                                  (int(x(horizon(img),m,b)), int(horizon(img))))
 
 # Define functions to get slopes and y-intercepts for an array of lines.
+
 slope = lambda lines: (lines[:,0,3]-lines[:,0,1])/(lines[:,0,2]-lines[:,0,0])
 intercept = lambda lines, m: lines[:,0,1]-m*lines[:,0,0]
 
+
 # Define functions get indices into lines array, for left line and for right line.
-lidx = lambda slopes: np.logical_and(np.isfinite(slopes), slopes<0, np.abs(slopes)>math.tan(theta['angle_cutoff']))
-ridx = lambda slopes: np.logical_and(np.isfinite(slopes), slopes>0, np.abs(slopes)>math.tan(theta['angle_cutoff']))
+
+lidx = lambda slopes: np.logical_and(np.isfinite(slopes),
+                                     slopes<0,
+                                     np.abs(slopes)>math.tan(theta['angle_cutoff']))
+ridx = lambda slopes: np.logical_and(np.isfinite(slopes),
+                                     slopes>0,
+                                     np.abs(slopes)>math.tan(theta['angle_cutoff']))
+
 
 # Define wrapper functions that adapt the Udacity helper functions.
+
 def grayscale_image(img):
     return grayscale(img)
+
 
 def blur_image(img):
     return gaussian_blur(img, theta['kernel_size'])
 
+
 def edge_image(img):
     return canny(img, theta['low_threshold'], theta['high_threshold'])
 
+
 def mask_image(img, vertices):
     return region_of_interest(img, vertices)
-
-def detect_image(img):
-    lines = cv2.HoughLinesP(img, theta['rho'], theta['theta']*np.pi/180, theta['threshold'], np.array([]), minLineLength=theta['min_line_length'], maxLineGap=theta['max_line_gap'])
-    m = slope(lines)
-    b = intercept(lines, m)
-    image = hough_lines(img, theta['rho'], theta['theta']*np.pi/180, theta['threshold'], theta['min_line_length'], theta['max_line_gap'])
-    return image, lines, m, b
-
-def average_lines(img, lines, m, b):
-    image = np.copy(img)
-    mbar = [np.mean(m[lidx(m)]), np.mean(m[ridx(m)])]
-    bbar = [np.mean(b[lidx(m)]), np.mean(b[ridx(m)])]
-    l_pts = trapezoid_pts(img, mbar[0], bbar[0])
-    r_pts = trapezoid_pts(img, mbar[1], bbar[1])
-    cv2.line(image, l_pts[0], l_pts[1], (0, 255, 0), 5)
-    cv2.line(image, r_pts[0], r_pts[1], (0, 255, 0), 5)
-    return image
-
-def detect_lines(img):
-    img1 = grayscale_image(img0)
-    img2 = blur_image(img1)
-    img3 = edge_image(img2)
-    img4 = mask_image(img3, trapezoid(img3)[:,:,::-1])
-    img5, lines, slopes, intercepts = detect_image(img4)
