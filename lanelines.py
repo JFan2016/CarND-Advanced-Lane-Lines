@@ -5,41 +5,10 @@ import glob
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Masking
-
-def region_of_interest(img, vertices):
-    mask = np.zeros_like(img)   
+import util
 
 
-top = lambda img: 0
-bottom = lambda img: int(img.shape[0])
-hood = lambda img: bottom(img)*(1-theta['hood'])
-left = lambda img: 0
-right = lambda img: img.shape[1]
-width = lambda img: right(img) - left(img)
-height = lambda img: bottom(img) - top(img)
-horizon = lambda img: int(img.shape[0]*theta['horizon'])
-centerline = lambda img: int(img.shape[1]*0.5)
-center = lambda img: [horizon(img), centerline(img)]
-ground = lambda img: np.array([[[horizon(img), left(img)],
-                                [horizon(img), right(img)],
-                                [bottom(img), right(img)],
-                                [bottom(img), left(img)]]])
-sky = lambda img: np.array([[[top(img), left(img)],
-                             [top(img), right(img)],
-                             [bottom(img), right(img)],
-                             [bottom(img), left(img)]]])
-trapezoid = lambda img: np.array([[[horizon(img), centerline(img)-theta['trapezoid_top_factor']*width(img)/2],
-                                   [horizon(img), centerline(img)+theta['trapezoid_top_factor']*width(img)/2],
-                                   [hood(img), centerline(img)+theta['trapezoid_bottom_factor']*width(img)/2],
-                                   [hood(img), centerline(img)-theta['trapezoid_bottom_factor']*width(img)/2]]]).astype(int)
-trapezoid_pts = lambda img,m,b: ((int(x(hood(img),m,b)), int(hood(img))),
-                                 (int(x(horizon(img),m,b)), int(horizon(img))))
-
-
-def mask_image(img, vertices):
-    return region_of_interest(img, vertices)
+plt.ion()
 
 
 # Camera Calibration
@@ -49,8 +18,8 @@ def measure_distortion(calibration_files):
     objp = np.zeros((9*6,3), np.float32)
     objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
     stage1 = map(lambda x: (x,), cycle(files))
-    stage2 = map(lambda x: x + (cv2.imread(x[0]),), stage1)
-    stage3 = map(lambda x: x + (cv2.findChessboardCorners(cv2.cvtColor(x[1], cv2.COLOR_BGR2GRAY), (9,6)),), stage2)
+    stage2 = map(lambda x: x + (mpimg.imread(x[0]),), stage1)
+    stage3 = map(lambda x: x + (cv2.findChessboardCorners(cv2.cvtColor(x[1], cv2.COLOR_RGB2GRAY), (9,6)),), stage2)
     stage4 = map(lambda x: x + (cv2.drawChessboardCorners(np.copy(x[1]), (9,6), *(x[2][::-1])),), stage3)
     filenames,images,corners,annotated_images = zip(*filter(lambda x: x[2][0], islice(stage4, len(files))))
     _,imgpoints = zip(*corners)
@@ -64,6 +33,9 @@ def measure_distortion(calibration_files):
 def get_undistorter(calibration_files):
     mtx,dist,annotated_images = measure_distortion(calibration_files)
     return lambda x: cv2.undistort(x, mtx, dist, None, mtx), annotated_images
+
+
+undistort,_ = get_undistorter(glob.glob("camera_cal/*.jpg"))
 
 
 # Perspective Transform
@@ -93,27 +65,54 @@ def measure_warp(corrected_image):
     fig.canvas.start_event_loop(timeout=-1)
     M = cv2.getPerspectiveTransform(np.asfarray(src, np.float32), np.asfarray(dst, np.float32))
     Minv = cv2.getPerspectiveTransform(np.asfarray(dst, np.float32), np.asfarray(src, np.float32))
-    plt.ioff()
     return M, Minv
 
 
 def get_unwarper(corrected_image):
     M, Minv = measure_warp(corrected_image)
-    return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR)
+    return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
 
 
-def scale(img):
-    scale_factor = np.max(img)/255
+unwarp,_,_ = get_unwarper(undistort(mpimg.imread("test_images/straight_lines1.jpg")))
+
+
+# Gradient and Color thresholds
+
+
+def scale(img, factor=255.0):
+    scale_factor = np.max(img)/factor
     return (img/scale_factor).astype(np.uint8)
 
 
-def derivative(img):
-    derivx = np.absolute(cv2.Sobel(img, cv2.CV_64F, 1, 0))
-    derivy = np.absolute(cv2.Sobel(img, cv2.CV_64F, 0, 1))
+def derivative(img, sobel_kernel=3):
+    derivx = np.absolute(cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=sobel_kernel))
+    derivy = np.absolute(cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=sobel_kernel))
     gradmag = np.sqrt(derivx**2 + derivy**2)
-    absgraddir = np.arctan2(np.absolute(derivy), np.absolute(derivx))
-    return scale(derivx), scale(derivy), scale(gradmag), scale(absgraddir)
+    absgraddir = np.arctan2(derivy, derivx)
+    return scale(derivx), scale(derivy), scale(gradmag), absgraddir
 
+
+def grad(img, k1=3, k2=15):
+    _,_,g,_ = derivative(img, sobel_kernel=k1)
+    _,_,_,p = derivative(img, sobel_kernel=k2)
+    return g,p
+
+
+def hls_select(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+    h = hsv[:,:,0]
+    l = hsv[:,:,1]
+    s = hsv[:,:,2]
+    return h,l,s
+
+
+def rgb_select(img):
+    rgb = img
+    r = rgb[:,:,0]
+    g = rgb[:,:,1]
+    b = rgb[:,:,2]
+    return r,g,b
+    
 
 def threshold(img, thresh_min=0, thresh_max=255):
     binary_output = np.zeros_like(img)
@@ -121,83 +120,73 @@ def threshold(img, thresh_min=0, thresh_max=255):
     return binary_output
 
 
-def pipeline2(img):
-    img = np.copy(img)
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HLS).astype(np.float)
-    h = hsv[:,:,0]
-    l = hsv[:,:,1]
-    s = hsv[:,:,2]
-    derivx, derivy, gradmag, absgraddir = derivative(img)
-
-
-def pipeline(img, s_thresh=(170, 255), sx_thresh=(20, 100)):
-    img = np.copy(img)
-    # img = mask_image(img, trapezoid(img)[:,:,::-1])
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HLS).astype(np.float)
-    h_channel = hsv[:,:,0]
-    l_channel = hsv[:,:,1]
-    s_channel = hsv[:,:,2]
-    # Sobel x
-    sobelx = cv2.Sobel(l_channel, cv2.CV_64F, 1, 0) # Take the derivative in x
-    abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
-    scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
-    # Threshold x gradient
-    sxbinary = np.zeros_like(scaled_sobel)
-    sxbinary[(scaled_sobel >= sx_thresh[0]) & (scaled_sobel <= sx_thresh[1])] = 1
-    # Threshold color channel
-    s_binary = np.zeros_like(s_channel)
-    s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
-    # Stack each channel
-    # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
-    # be beneficial to replace this channel with something else.
-    color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary))
-    return color_binary
-
-
 ################################################################################
 
-theta = {'horizon':0.61,
-         'hood':0.07,
-         'trapezoid_top_factor':0.10,
-         'trapezoid_bottom_factor':0.90,
-         'angle_cutoff':0.75,
-         'kernel_size':5,
-         'low_threshold':50,
-         'high_threshold':150,
-         'rho':2,
-         'theta':1,
-         'threshold':30,
-         'min_line_length':3,
-         'max_line_gap':1}
+import builtins
+builtins.theta = {
+    'horizon':0.60,
+    'hood':0.07,
+    'trapezoid_top_factor':0.10,
+    'trapezoid_bottom_factor':0.90,
+    'angle_cutoff':0.75,
+    'kernel_size':5,
+    'low_threshold':50,
+    'high_threshold':150,
+    'rho':2,
+    'theta':1,
+    'threshold':30,
+    'min_line_length':3,
+    'max_line_gap':1}
 
-undistort, annotated_images = get_undistorter(glob.glob("camera_cal/*.jpg"))
-plt.imshow(annotated_images[0])
-plt.savefig("fig1.png", format="png", bbox_inches="tight")
-plt.close()
-distorted_image = plt.imread("test_images/straight_lines1.jpg")
-corrected_image = undistort(distorted_image)
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24,9))
-f.tight_layout()
-ax1.imshow(distorted_image)
-ax1.set_title("Distorted Image")
-ax2.imshow(corrected_image)
-ax2.set_title("Corrected Image")
-plt.savefig("fig2.png", format="png", bbox_inches="tight")
-plt.close()
 
-result = pipeline(corrected_image)
-f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-f.tight_layout()
-ax1.imshow(corrected_image)
-ax1.set_title('Original Image', fontsize=40)
-ax2.imshow(result)
-ax2.set_title('Pipeline Result', fontsize=40)
-plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+def mask_image(img, vertices):
+    return region_of_interest(img, vertices)
 
-unwarp = get_unwarper(corrected_image)
-flat_image = unwarp(corrected_image)
+
+def process(img):
+    img = np.copy(img)
+    img = undistort(img)
+    h,l,s = hls_select(img)
+    r,g,b = rgb_select(img)
+    g = util.blur_image(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+    grad_g = grad(util.blur_image(g),k1=3,k2=15)
+    grad_r = grad(util.blur_image(r),k1=3,k2=15)
+    grad_s = grad(util.blur_image(s),k1=3,k2=15)
+    o0 = threshold(g, 180, 255)
+    o1 = threshold(r, 200, 255)
+    o2 = threshold(s, 90, 255)
+    o3 = sand(threshold(grad_g[0], 40, 255), threshold(grad_g[1], 0.7, 1.3))
+    o4 = sand(threshold(grad_r[0], 40, 255), threshold(grad_r[1], 0.7, 1.3))
+    o5 = sand(threshold(grad_s[0], 40, 255), threshold(grad_s[1], 0.7, 1.3))
+    o6 = sor(o1,o3,o4,o5)
+    o7 = util.mask_image(scale(o6), util.trapezoid(img)[:,:,::-1])
+    o8 = scale(unwarp(o7), factor=1)
+    return o8
+
+
+
+sand = lambda *x: np.logical_and.reduce(x)
+sor = lambda *x: np.logical_or.reduce(x)
+
+a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/*.jpg")))
+
+# plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))))
+
+# plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))),
+
+
+# result = pipeline(corrected_image)
+# f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+# f.tight_layout()
+# ax1.imshow(corrected_image)
+# ax1.set_title('Original Image', fontsize=40)
+# ax2.imshow(result)
+# ax2.set_title('Pipeline Result', fontsize=40)
+# plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+
+calibration_image = undistort(mpimg.imread("test_images/straight_lines1.jpg"))
+flat_image = unwarp(calibration_image)
 fig = plt.figure()
 plt.imshow(flat_image)
 plt.savefig("fig3.png", format="png")
 plt.close()
-
