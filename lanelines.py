@@ -117,6 +117,10 @@ def threshold(img, thresh_min=0, thresh_max=255):
     return binary_output
 
 
+sand = lambda *x: np.logical_and.reduce(x)
+sor = lambda *x: np.logical_or.reduce(x)
+
+
 ################################################################################
 
 import builtins
@@ -137,33 +141,23 @@ builtins.theta = {
 
 
 def process(img):
-    img = np.copy(img)
+    # img = np.copy(img)
     img = undistort(img)
-    h,l,s = hls_select(img)
     r,g,b = rgb_select(img)
-    g = blur_image(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
-    grad_g = grad(blur_image(g),k1=3,k2=15)
-    grad_r = grad(blur_image(r),k1=3,k2=15)
-    grad_s = grad(blur_image(s),k1=3,k2=15)
-    o0 = threshold(g, 180, 255)
-    o1 = threshold(r, 220, 255)
-    o2 = threshold(s, 200, 255)
-    plim = np.pi/4.
-    o3 = sand(threshold(grad_g[0], 20, 255), threshold(grad_g[1], plim*0.6, plim*1.2))
-    o4 = sand(threshold(grad_r[0], 20, 255), threshold(grad_r[1], plim*0.6, plim*1.2))
-    o5 = sand(threshold(grad_s[0], 20, 255), threshold(grad_s[1], plim*0.6, plim*1.2))
-    o6 = sor(o1,o2,o3,o4,o5).astype('float32')
-    o7 = scale(unwarp(o6), factor=1)
-    return scale(o7)
+    h,l,s = hls_select(img)
+    grad_gray = grad(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+    grad_s = grad(s,k1=3,k2=15)
+    o01 = threshold(r, 200, 255)
+    o02 = threshold(g, 200, 255)
+    o06 = threshold(s, 170, 255)
+    o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
+    return unwarp(scale(sor(sand(o01,o02),o12)))
 
-
-sand = lambda *x: np.logical_and.reduce(x)
-sor = lambda *x: np.logical_or.reduce(x)
-
-a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1],cmap='gray')
 
