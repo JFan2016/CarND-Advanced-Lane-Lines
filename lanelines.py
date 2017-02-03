@@ -70,7 +70,6 @@ def get_unwarper(corrected_image):
     M, Minv = measure_warp(corrected_image)
     return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
 
-
 unwarp,_,_ = get_unwarper(undistort(mpimg.imread("test_images/straight_lines1.jpg")))
 
 
@@ -147,15 +146,15 @@ def process(img):
     grad_r = grad(blur_image(r),k1=3,k2=15)
     grad_s = grad(blur_image(s),k1=3,k2=15)
     o0 = threshold(g, 180, 255)
-    o1 = threshold(r, 200, 255)
-    o2 = threshold(s, 90, 255)
-    o3 = sand(threshold(grad_g[0], 40, 255), threshold(grad_g[1], 0.7, 1.3))
-    o4 = sand(threshold(grad_r[0], 40, 255), threshold(grad_r[1], 0.7, 1.3))
-    o5 = sand(threshold(grad_s[0], 40, 255), threshold(grad_s[1], 0.7, 1.3))
-    o6 = sor(o1,o3,o4,o5)
-    o7 = mask_image(scale(o6), trapezoid(img)[:,:,::-1])
-    o8 = scale(unwarp(o7), factor=1)
-    return o7
+    o1 = threshold(r, 220, 255)
+    o2 = threshold(s, 200, 255)
+    plim = np.pi/4.
+    o3 = sand(threshold(grad_g[0], 20, 255), threshold(grad_g[1], plim*0.6, plim*1.2))
+    o4 = sand(threshold(grad_r[0], 20, 255), threshold(grad_r[1], plim*0.6, plim*1.2))
+    o5 = sand(threshold(grad_s[0], 20, 255), threshold(grad_s[1], plim*0.6, plim*1.2))
+    o6 = sor(o1,o2,o3,o4,o5).astype('float32')
+    o7 = scale(unwarp(o6), factor=1)
+    return scale(o7)
 
 
 def mask_image(img, vertices):
@@ -166,6 +165,14 @@ sand = lambda *x: np.logical_and.reduce(x)
 sor = lambda *x: np.logical_or.reduce(x)
 
 a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/*.jpg")))
+
+img1 = mpimg.imread("test_images/test1.jpg")
+img2 = mpimg.imread("test_images/test2.jpg")
+img3 = mpimg.imread("test_images/test3.jpg")
+img4 = mpimg.imread("test_images/test4.jpg")
+img5 = mpimg.imread("test_images/test5.jpg")
+img6 = mpimg.imread("test_images/test6.jpg")
+
 
 # plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))))
 
@@ -181,9 +188,9 @@ a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/*.jpg")))
 # ax2.set_title('Pipeline Result', fontsize=40)
 # plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
 
-calibration_image = undistort(mpimg.imread("test_images/straight_lines1.jpg"))
-flat_image = unwarp(calibration_image)
-fig = plt.figure()
-plt.imshow(flat_image)
-plt.savefig("fig3.png", format="png")
-plt.close()
+# calibration_image = undistort(mpimg.imread("test_images/straight_lines1.jpg"))
+# flat_image = unwarp(calibration_image)
+# fig = plt.figure()
+# plt.imshow(flat_image)
+# plt.savefig("fig3.png", format="png")
+# plt.close()
