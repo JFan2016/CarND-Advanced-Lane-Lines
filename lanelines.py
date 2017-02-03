@@ -167,8 +167,6 @@ fig.subplots_adjust(hspace=0.3, wspace=0.05)
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1],cmap='gray')
 
-
-
 img1 = mpimg.imread("test_images/test1.jpg")
 img2 = mpimg.imread("test_images/test2.jpg")
 img3 = mpimg.imread("test_images/test3.jpg")
