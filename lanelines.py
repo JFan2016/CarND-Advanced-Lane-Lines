@@ -41,13 +41,16 @@ undistort,_ = get_undistorter(glob.glob("camera_cal/*.jpg"))
 # Perspective Transform
 
 def measure_warp(img):
+    top = 0
+    bottom = img.shape[0]
     def handler(e):
         if len(src)<4:
             plt.axhline(int(e.ydata), linewidth=2, color='r')
             plt.axvline(int(e.xdata), linewidth=2, color='r')
             src.append((int(e.xdata),int(e.ydata)))
         if len(src)==4:
-            dst.extend([src[0], (src[0][0],src[1][1]), (src[3][0],src[2][1]), src[3]])
+            # dst.extend([(src[0][0],bottom), (src[0][0],top), (src[3][0],top), (src[3][0],bottom)])
+            dst.extend([(200,bottom),(200,top),(1080,top),(1080,bottom)])
     was_interactive = matplotlib.is_interactive()
     if not matplotlib.is_interactive():
         plt.ion()
@@ -70,7 +73,7 @@ def get_unwarper(corrected_image):
     M, Minv = measure_warp(corrected_image)
     return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
 
-unwarp,_,_ = get_unwarper(undistort(mpimg.imread("test_images/straight_lines1.jpg")))
+unwarp,_,_ = get_unwarper(undistort(mpimg.imread("test_images/straight_lines2.jpg")))
 
 
 # Gradient and Color thresholds
@@ -167,6 +170,9 @@ img3 = mpimg.imread("test_images/test3.jpg")
 img4 = mpimg.imread("test_images/test4.jpg")
 img5 = mpimg.imread("test_images/test5.jpg")
 img6 = mpimg.imread("test_images/test6.jpg")
+str1 = mpimg.imread("test_images/straight_lines1.jpg")
+str2 = mpimg.imread("test_images/straight_lines2.jpg")
+
 
 
 # plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))))
