@@ -2,6 +2,7 @@ from itertools import groupby, islice, zip_longest, cycle, filterfalse
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 from matplotlib.widgets import Button
+from udacity import *
 from util import *
 import cv2
 import glob
@@ -143,8 +144,7 @@ builtins.theta = {
     'max_line_gap':1}
 
 
-def process(img):
-    # img = np.copy(img)
+def warped_binary(img):
     img = undistort(img)
     r,g,b = rgb_select(img)
     h,l,s = hls_select(img)
@@ -159,6 +159,12 @@ def process(img):
 
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
+
+def process(img):
+    binary_warped = warped_binary(img)
+    left_fit,right_fit = sliding_window(binary_warped)
+    annotated = visualize(binary_warped,left_fit,right_fit)
+    return binary_warped
 
 a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 for p in zip(sum(axes.tolist(),[]), a):
