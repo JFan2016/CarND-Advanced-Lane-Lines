@@ -157,14 +157,17 @@ def process(img):
     return scale(o7)
 
 
-def mask_image(img, vertices):
-    return region_of_interest(img, vertices)
-
-
 sand = lambda *x: np.logical_and.reduce(x)
 sor = lambda *x: np.logical_or.reduce(x)
 
-a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/*.jpg")))
+a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+
+fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
+fig.subplots_adjust(hspace=0.3, wspace=0.05)
+for p in zip(sum(axes.tolist(),[]), a):
+    p[0].imshow(p[1],cmap='gray')
+
+
 
 img1 = mpimg.imread("test_images/test1.jpg")
 img2 = mpimg.imread("test_images/test2.jpg")
