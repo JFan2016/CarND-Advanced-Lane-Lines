@@ -2,8 +2,8 @@ from itertools import groupby, islice, zip_longest, cycle, filterfalse
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
 from matplotlib.widgets import Button
+from matplotlib.widgets import Slider, Button, RadioButtons
 from udacity import *
-from util import *
 import cv2
 import glob
 import matplotlib
@@ -26,7 +26,7 @@ def measure_distortion(calibration_files):
     _,imgpoints = zip(*corners)
     objpoints = [objp for i in range(len(imgpoints))]
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, list(islice(stage2,1))[0][1].shape[:2:][::-1], None, None)
-    return mtx, dist, annotated_images
+    return mtx, dist, zip(filenames, annotated_images)
 
 
 # Distortion Correction
@@ -36,8 +36,12 @@ def get_undistorter(calibration_files):
     return lambda x: cv2.undistort(x, mtx, dist, None, mtx), annotated_images
 
 
-undistort,_ = get_undistorter(glob.glob("camera_cal/*.jpg"))
-
+undistort,annotated_images = get_undistorter(glob.glob("camera_cal/*.jpg"))
+fig = plt.figure()
+grid = ImageGrid(fig, 111, nrows_ncols=(4,4), axes_pad=0.0)
+for p in zip(annotated_images, grid):
+    p[1].imshow(p[0][1])
+fig.savefig("output_images/annotated_calibration_images.jpg")
 
 # Perspective Transform
 
@@ -144,7 +148,7 @@ builtins.theta = {
     'max_line_gap':1}
 
 
-def warped_binary(img):
+def preprocess(img):
     img = undistort(img)
     r,g,b = rgb_select(img)
     h,l,s = hls_select(img)
@@ -157,47 +161,15 @@ def warped_binary(img):
     return unwarp(scale(sor(sand(o01,o02),o12)))
 
 
-fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-fig.subplots_adjust(hspace=0.3, wspace=0.05)
-
 def process(img):
-    binary_warped = warped_binary(img)
+    binary_warped = preprocess(img)
     left_fit,right_fit = sliding_window(binary_warped)
     annotated = visualize(binary_warped,left_fit,right_fit)
     return binary_warped
 
-a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
+fig.subplots_adjust(hspace=0.3, wspace=0.05)
+a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1],cmap='gray')
 
-img1 = mpimg.imread("test_images/test1.jpg")
-img2 = mpimg.imread("test_images/test2.jpg")
-img3 = mpimg.imread("test_images/test3.jpg")
-img4 = mpimg.imread("test_images/test4.jpg")
-img5 = mpimg.imread("test_images/test5.jpg")
-img6 = mpimg.imread("test_images/test6.jpg")
-str1 = mpimg.imread("test_images/straight_lines1.jpg")
-str2 = mpimg.imread("test_images/straight_lines2.jpg")
-
-
-
-# plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))))
-
-# plt.imshow(np.dstack((np.zeros_like(corrected_image)[:,:,0], pipeline1(corrected_image), pipeline2(corrected_image))),
-
-
-# result = pipeline(corrected_image)
-# f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-# f.tight_layout()
-# ax1.imshow(corrected_image)
-# ax1.set_title('Original Image', fontsize=40)
-# ax2.imshow(result)
-# ax2.set_title('Pipeline Result', fontsize=40)
-# plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-
-# calibration_image = undistort(mpimg.imread("test_images/straight_lines1.jpg"))
-# flat_image = unwarp(calibration_image)
-# fig = plt.figure()
-# plt.imshow(flat_image)
-# plt.savefig("fig3.png", format="png")
-# plt.close()
