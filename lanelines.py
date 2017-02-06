@@ -1,3 +1,4 @@
+from collections import deque
 from itertools import groupby, islice, zip_longest, cycle, filterfalse
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
@@ -11,6 +12,7 @@ import matplotlib
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
+import pdb
 
 
 # Camera Calibration
@@ -162,26 +164,7 @@ def preprocess(img):
     return undist,warp(scale(sor(sand(o01,o02),o12)))
 
 
-
-fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-fig.subplots_adjust(hspace=0.3, wspace=0.05)
-a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
-b = (sliding_window(*p) for p in a)
-for p in zip(sum(axes.tolist(),[]), a):
-    p[0].imshow(p[1],cmap='gray')
-fig.savefig("output_images/warped_binary_test_images.jpg")
-plt.close()
-
-fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-fig.subplots_adjust(hspace=0.3, wspace=0.05)
-b = (visualize(*sliding_window(preprocess(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg")))
-for p in zip(sum(axes.tolist(),[]), a):
-    p[0].imshow(p[1],cmap='gray')
-fig.savefig("output_images/found_lines_test_images.jpg")
-plt.close()
-
-
-def sliding_window(undist,warped_binary):
+def sliding_window(undistorted, warped_binary):
     # Assuming you have created a warped binary image called "warped_binary"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
@@ -192,7 +175,6 @@ def sliding_window(undist,warped_binary):
     midpoint = np.int(histogram.shape[0]/2)
     leftx_base = np.argmax(histogram[:midpoint])
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
-
     # Choose the number of sliding windows
     nwindows = 9
     # Set height of windows
@@ -211,7 +193,6 @@ def sliding_window(undist,warped_binary):
     # Create empty lists to receive left and right lane pixel indices
     left_lane_inds = []
     right_lane_inds = []
-
     # Step through the windows one by one
     for window in range(nwindows):
         # Identify window boundaries in x and y (and right and left)
@@ -235,106 +216,83 @@ def sliding_window(undist,warped_binary):
             leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
         if len(good_right_inds) > minpix:        
             rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
-
     # Concatenate the arrays of indices
     left_lane_inds = np.concatenate(left_lane_inds)
     right_lane_inds = np.concatenate(right_lane_inds)
-
     # Extract left and right line pixel positions
     leftx = nonzerox[left_lane_inds]
     lefty = nonzeroy[left_lane_inds] 
     rightx = nonzerox[right_lane_inds]
     righty = nonzeroy[right_lane_inds] 
-
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-
     # Generate x and y values for plotting
     ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
-    # Define y-value where we want radius of curvature
-    # I'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = np.max(ploty)
-
-    # Define conversions in x and y from pixels space to meters
-    ym_per_pix = 30/720 # meters per pixel in y dimension
-    xm_per_pix = 3.7/700 # meters per pixel in x dimension
-
-    # Fit new polynomials to x,y in world space
-    left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
-    right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
-    # Calculate the new radii of curvature
-    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
-    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+    return out_img,left_fit,right_fit
 
-    # return out_img,left_fit,right_fit,ploty,left_fitx,right_fitx,left_curverad,right_curverad
 
+def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(warped_binary).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
-
+    # Generate x and y values for plotting
+    ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0])
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
     # Recast the x and y points into usable format for cv2.fillPoly()
     pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
     pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
     pts = np.hstack((pts_left, pts_right))
-
     # Draw the lane onto the warped_binary blank image
     cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
-
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
     # newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])) 
     newwarp = unwarp(color_warp)
     # Combine the result with the original image
-    result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
-
+    result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
     return result
 
 
-# def visualize(out_img,left_fit,right_fit,ploty,left_fitx,right_fitx):
-#     plt.imshow(out_img)
-#     plt.plot(left_fitx, ploty, color='yellow')
-#     plt.plot(right_fitx, ploty, color='yellow')
-#     plt.xlim(0, 1280)
-#     plt.ylim(720, 0)
+def get_processor():
+    left_window = deque(maxlen=5)
+    right_window = deque(maxlen=5)
+    def process_image(img0):
+        undistorted,warped_binary = preprocess(img0)
+        fit_img,left_fit,right_fit = sliding_window(undistorted,warped_binary)
+        left_window.append(left_fit)
+        right_window.append(right_fit)
+        left_fit_avg = np.average(left_window,0)
+        right_fit_avg = np.average(right_window,0)
+        annotated_image = draw_lane(undistorted, warped_binary, left_fit_avg, right_fit_avg, unwarp)
+        return annotated_image
+    return process_image
 
 
-# def targeted_search(warped_binary,left_fit,right_fit,ploty,left_fitx,right_fitx):
-#     # Assume you now have a new warped binary image 
-#     # from the next frame of video (also called "warped_binary")
-#     # It's now much easier to find line pixels!
-#     nonzero = warped_binary.nonzero()
-#     nonzeroy = np.array(nonzero[0])
-#     nonzerox = np.array(nonzero[1])
-#     margin = 100
-#     left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin))) 
-#     right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))  
+fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
+fig.subplots_adjust(hspace=0.3, wspace=0.05)
+a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+b = (sliding_window(*p) for p in a)
+for p in zip(sum(axes.tolist(),[]), a):
+    p[0].imshow(p[1],cmap='gray')
+fig.savefig("output_images/warped_binary_test_images.jpg")
+plt.close()
 
-#     # Again, extract left and right line pixel positions
-#     leftx = nonzerox[left_lane_inds]
-#     lefty = nonzeroy[left_lane_inds] 
-#     rightx = nonzerox[right_lane_inds]
-#     righty = nonzeroy[right_lane_inds]
-#     # Fit a second order polynomial to each
-#     left_fit = np.polyfit(lefty, leftx, 2)
-#     right_fit = np.polyfit(righty, rightx, 2)
-#     # Generate x and y values for plotting
-#     ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
-#     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-#     right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
-def process_image(img0):
-    img1 = preprocess(img0)
-    img2 = sliding_window(*img1)
-    return img2
+fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
+fig.subplots_adjust(hspace=0.3, wspace=0.05)
+b = (visualize(*sliding_window(preprocess(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg")))
+for p in zip(sum(axes.tolist(),[]), a):
+    p[0].imshow(p[1],cmap='gray')
+fig.savefig("output_images/found_lines_test_images.jpg")
+plt.close()
 
 
 # Process first test video.
+processor = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
-out_clip = in_clip.fl_image(process_image)
+out_clip = in_clip.fl_image(processor)
 out_clip.write_videofile('output_images/project_output.mp4', audio=False)
