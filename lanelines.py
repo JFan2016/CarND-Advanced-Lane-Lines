@@ -58,8 +58,7 @@ def measure_warp(img):
             plt.axvline(int(e.xdata), linewidth=2, color='r')
             src.append((int(e.xdata),int(e.ydata)))
         if len(src)==4:
-            # dst.extend([(src[0][0],bottom), (src[0][0],top), (src[3][0],top), (src[3][0],bottom)])
-            dst.extend([(200,bottom),(200,top),(1080,top),(1080,bottom)])
+            dst.extend([(200,bottom),(200,bottom//2),(1080,bottom//2),(1080,bottom)])
     was_interactive = matplotlib.is_interactive()
     if not matplotlib.is_interactive():
         plt.ion()
@@ -156,14 +155,9 @@ def preprocess(img):
     undist = undistort(img)
     r,g,b = rgb_select(undist)
     h,l,s = hls_select(undist)
-    # grad_gray = grad(cv2.cvtColor(undist, cv2.COLOR_RGB2GRAY))
-    # grad_s = grad(s,k1=3,k2=15)
     o01 = threshold(r, 200, 255)
     o02 = threshold(g, 200, 255)
     o03 = threshold(s, 90, 255)
-    # o06 = threshold(s, 170, 255)
-    # o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
-    # o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
     return undist,warp(scale(sor(sand(o01,o02),o03)))
 
 
@@ -290,7 +284,7 @@ def get_processor():
 
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
-a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+a = (preprocess2(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1][1],cmap='gray')
 fig.savefig("output_images/warped_binary_test_images.jpg")
@@ -301,7 +295,6 @@ plt.close()
 processor = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(processor)
-# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
 cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
 
 # The strip_dirs() method removed the extraneous path from all the
