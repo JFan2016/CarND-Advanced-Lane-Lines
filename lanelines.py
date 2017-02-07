@@ -302,23 +302,25 @@ def draw_lane(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
 
 
 def get_processor():
-    l_params = deque(maxlen=10)
-    r_params = deque(maxlen=10)
-    l_radius = deque(maxlen=10)
-    r_radius = deque(maxlen=10)
+    bins = 10
+    l_params = deque(maxlen=bins)
+    r_params = deque(maxlen=bins)
+    l_radius = deque(maxlen=bins)
+    r_radius = deque(maxlen=bins)
+    weights = np.arange(1,bins+1)/bins
     def process_image(img0):
         undistorted,warped_binary = preprocess(img0)
-        l_fit, r_fit, l_res, r_res, l_curverad, r_curverad = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0), np.average(r_params,0))
+        l_fit, r_fit, l_res, r_res, l_curverad, r_curverad = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0,weights[-len(l_params):]), np.average(r_params,0,weights[-len(l_params):]))
         l_params.append(l_fit)
         r_params.append(r_fit)
         l_radius.append(l_curverad)
         r_radius.append(r_curverad)
         annotated_image = draw_lane(undistorted,
                                     warped_binary,
-                                    np.average(l_params,0),
-                                    np.average(r_params,0),
-                                    np.average(l_radius),
-                                    np.average(r_radius),
+                                    np.average(l_params,0,weights[-len(l_params):]),
+                                    np.average(r_params,0,weights[-len(l_params):]),
+                                    np.average(l_radius,0,weights[-len(l_params):]),
+                                    np.average(r_radius,0,weights[-len(l_params):]),
                                     unwarp)
         return annotated_image
     return process_image
@@ -333,12 +335,27 @@ fig.savefig("output_images/warped_binary_test_images.jpg")
 plt.close()
 
 
-# Process first test video.
+# Test processor
 process = get_processor()
 b = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+
+# Process first test video.
+process = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(process)
 cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
+
+# Process second test video.
+process = get_processor()
+in_clip = VideoFileClip("challenge_video.mp4")
+out_clip = in_clip.fl_image(process)
+out_clip.write_videofile('output_images/challenge_output.mp4', audio=False)
+
+# Process third test video.
+process = get_processor()
+in_clip = VideoFileClip("harder_challenge_video.mp4")
+out_clip = in_clip.fl_image(process)
+out_clip.write_videofile('output_images/harder_challenge_output.mp4', audio=False)
 
 # The strip_dirs() method removed the extraneous path from all the
 # module names. The sort_stats() method sorted all the entries
@@ -364,16 +381,3 @@ p.print_callers(.5, 'init')
 p.print_callees()
 p.add('restats')
 
-# # Process second test video.
-# processor = get_processor()
-# in_clip = VideoFileClip("challenge_video.mp4")
-# out_clip = in_clip.fl_image(processor)
-# # out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-# cProfile.run('out_clip.write_videofile("output_images/challenge_output.mp4", audio=False)')
-
-# # Process third test video.
-# processor = get_processor()
-# in_clip = VideoFileClip("harder_challenge_video.mp4")
-# out_clip = in_clip.fl_image(processor)
-# # out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-# cProfile.run('out_clip.write_videofile("output_images/harder_challenge_output.mp4", audio=False)')
