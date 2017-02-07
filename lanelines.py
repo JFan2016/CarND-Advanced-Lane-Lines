@@ -182,9 +182,9 @@ def detect_lines(undistorted, warped_binary, left_fit, right_fit):
     rightx = nonzerox[right_lane_inds]
     righty = nonzeroy[right_lane_inds]
     # Fit a second order polynomial to each
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
-    return left_fit, right_fit
+    left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
+    right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx))
 
 
 def detect_lines_sliding_window(undistorted, warped_binary):
@@ -248,9 +248,9 @@ def detect_lines_sliding_window(undistorted, warped_binary):
     rightx = nonzerox[right_lane_inds]
     righty = nonzeroy[right_lane_inds] 
     # Fit a second order polynomial to each
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
-    return left_fit, right_fit
+    left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
+    right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx))
 
 
 def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
@@ -276,11 +276,11 @@ def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
 
 
 def get_processor():
-    left_window = deque(maxlen=30)
-    right_window = deque(maxlen=30)
+    left_window = deque(maxlen=10)
+    right_window = deque(maxlen=10)
     def process_image(img0):
         undistorted,warped_binary = preprocess(img0)
-        left_fit, right_fit = detect_lines_sliding_window(undistorted,warped_binary) if len(left_window)==0 else detect_lines(undistorted,warped_binary,np.average(left_window,0), np.average(right_window,0))
+        left_fit, right_fit, left_res, right_res = detect_lines_sliding_window(undistorted,warped_binary) if len(left_window)==0 else detect_lines(undistorted,warped_binary,np.average(left_window,0), np.average(right_window,0))
         left_window.append(left_fit)
         right_window.append(right_fit)
         annotated_image = draw_lane(undistorted, warped_binary, np.average(left_window,0), np.average(right_window,0), unwarp)
@@ -291,19 +291,10 @@ def get_processor():
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
 a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
-# b = (detect_lines_sliding_window(*p) for p in a)
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1][1],cmap='gray')
 fig.savefig("output_images/warped_binary_test_images.jpg")
 plt.close()
-
-# fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-# fig.subplots_adjust(hspace=0.3, wspace=0.05)
-# b = (visualize(*detect_lines_sliding_window(preprocess(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg")))
-# for p in zip(sum(axes.tolist(),[]), a):
-#     p[0].imshow(p[1],cmap='gray')
-# fig.savefig("output_images/found_lines_test_images.jpg")
-# plt.close()
 
 
 # Process first test video.
@@ -311,18 +302,42 @@ processor = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(processor)
 # out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)')
+cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
 
-# Process second test video.
-processor = get_processor()
-in_clip = VideoFileClip("challenge_video.mp4")
-out_clip = in_clip.fl_image(processor)
-# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-cProfile.run('out_clip.write_videofile("output_images/challenge_output.mp4", audio=False)')
+# The strip_dirs() method removed the extraneous path from all the
+# module names. The sort_stats() method sorted all the entries
+# according to the standard module/line/name string that is
+# printed. The print_stats() method printed out all the statistics. 
+import pstats
+p = pstats.Stats('restats')
+p.strip_dirs().sort_stats(-1).print_stats()
 
-# Process third test video.
-processor = get_processor()
-in_clip = VideoFileClip("harder_challenge_video.mp4")
-out_clip = in_clip.fl_image(processor)
-# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-cProfile.run('out_clip.write_videofile("output_images/harder_challenge_output.mp4", audio=False)')
+# The first call will actually sort the list by function name, and the second call will print out the statistics.
+p.sort_stats('name')
+p.print_stats()
+
+# some interesting calls to experiment with
+p.sort_stats('cumulative').print_stats(10)
+
+# to see what functions were looping a lot, and taking a lot of time
+p.sort_stats('time').print_stats(10)
+
+# get a list of callers for each of the listed functions
+p.print_callers(.5, 'init')
+
+p.print_callees()
+p.add('restats')
+
+# # Process second test video.
+# processor = get_processor()
+# in_clip = VideoFileClip("challenge_video.mp4")
+# out_clip = in_clip.fl_image(processor)
+# # out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+# cProfile.run('out_clip.write_videofile("output_images/challenge_output.mp4", audio=False)')
+
+# # Process third test video.
+# processor = get_processor()
+# in_clip = VideoFileClip("harder_challenge_video.mp4")
+# out_clip = in_clip.fl_image(processor)
+# # out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+# cProfile.run('out_clip.write_videofile("output_images/harder_challenge_output.mp4", audio=False)')
