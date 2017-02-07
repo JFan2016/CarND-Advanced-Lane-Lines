@@ -128,14 +128,13 @@ def threshold(img, thresh_min=0, thresh_max=255):
     return binary_output
 
 
-sand = lambda *x: np.logical_and.reduce(x)
-sor = lambda *x: np.logical_or.reduce(x)
+land = lambda *x: np.logical_and.reduce(x)
+lor = lambda *x: np.logical_or.reduce(x)
 
 
 ################################################################################
 
-import builtins
-builtins.theta = {
+theta = {
     'horizon':0.60,
     'hood':0.07,
     'trapezoid_top_factor':0.10,
@@ -158,10 +157,10 @@ def preprocess(img):
     o01 = threshold(r, 200, 255)
     o02 = threshold(g, 200, 255)
     o03 = threshold(s, 90, 255)
-    return undist,warp(scale(sor(sand(o01,o02),o03)))
+    return undist,warp(scale(lor(land(o01,o02),o03)))
 
 
-def detect_lines(undistorted, warped_binary, left_fit, right_fit):
+def detect_lines(warped_binary, left_fit, right_fit):
     # from the next frame of video (also called "binary_warped")
     # It's now much easier to find line pixels!
     nonzero = warped_binary.nonzero()
@@ -178,10 +177,24 @@ def detect_lines(undistorted, warped_binary, left_fit, right_fit):
     # Fit a second order polynomial to each
     left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
     right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
-    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx))
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30/720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+    # Fit new polynomials to x,y in world space
+    # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
+    left_fit_cr= np.polyfit(lefty, leftx, 2)
+    right_fit_cr = np.polyfit(righty, rightx, 2)
+    # Define y-value where we want radius of curvature
+    # I'll choose the maximum y-value, corresponding to the bottom of the image
+    y_eval = warped_binary.shape[0]
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
 
 
-def detect_lines_sliding_window(undistorted, warped_binary):
+def detect_lines_sliding_window(warped_binary):
     # Assuming you have created a warped binary image called "warped_binary"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
@@ -244,20 +257,34 @@ def detect_lines_sliding_window(undistorted, warped_binary):
     # Fit a second order polynomial to each
     left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
     right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
-    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx))
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30/720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+    # Fit new polynomials to x,y in world space
+    # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
+    left_fit_cr= np.polyfit(lefty, leftx, 2)
+    right_fit_cr = np.polyfit(righty, rightx, 2)
+    # Define y-value where we want radius of curvature
+    # I'll choose the maximum y-value, corresponding to the bottom of the image
+    y_eval = warped_binary.shape[0]
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
 
 
-def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
+def draw_lane(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(warped_binary).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
     # Generate x and y values for plotting
     ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0])
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    l_fitx = l_fit[0]*ploty**2 + l_fit[1]*ploty + l_fit[2]
+    r_fitx = r_fit[0]*ploty**2 + r_fit[1]*ploty + r_fit[2]
     # Recast the x and y points into usable format for cv2.fillPoly()
-    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+    pts_left = np.array([np.transpose(np.vstack([l_fitx, ploty]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([r_fitx, ploty])))])
     pts = np.hstack((pts_left, pts_right))
     # Draw the lane onto the warped_binary blank image
     cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
@@ -266,25 +293,37 @@ def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
     newwarp = unwarp(color_warp)
     # Combine the result with the original image
     result = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
+    cv2.putText(result, "L. Curvature: %.2f km" % (l_rad/1000), (50,50), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2)
+    cv2.putText(result, "R. Curvature: %.2f km" % (r_rad/1000), (50,80), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2)
     return result
 
 
 def get_processor():
-    left_window = deque(maxlen=10)
-    right_window = deque(maxlen=10)
+    l_params = deque(maxlen=10)
+    r_params = deque(maxlen=10)
+    l_radius = deque(maxlen=10)
+    r_radius = deque(maxlen=10)
     def process_image(img0):
         undistorted,warped_binary = preprocess(img0)
-        left_fit, right_fit, left_res, right_res = detect_lines_sliding_window(undistorted,warped_binary) if len(left_window)==0 else detect_lines(undistorted,warped_binary,np.average(left_window,0), np.average(right_window,0))
-        left_window.append(left_fit)
-        right_window.append(right_fit)
-        annotated_image = draw_lane(undistorted, warped_binary, np.average(left_window,0), np.average(right_window,0), unwarp)
+        l_fit, r_fit, l_res, r_res, l_curverad, r_curverad = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0), np.average(r_params,0))
+        l_params.append(l_fit)
+        r_params.append(r_fit)
+        l_radius.append(l_curverad)
+        r_radius.append(r_curverad)
+        annotated_image = draw_lane(undistorted,
+                                    warped_binary,
+                                    np.average(l_params,0),
+                                    np.average(r_params,0),
+                                    np.average(l_radius),
+                                    np.average(r_radius),
+                                    unwarp)
         return annotated_image
     return process_image
 
 
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
-a = (preprocess2(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 for p in zip(sum(axes.tolist(),[]), a):
     p[0].imshow(p[1][1],cmap='gray')
 fig.savefig("output_images/warped_binary_test_images.jpg")
@@ -292,9 +331,10 @@ plt.close()
 
 
 # Process first test video.
-processor = get_processor()
+process = get_processor()
+b = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 in_clip = VideoFileClip("project_video.mp4")
-out_clip = in_clip.fl_image(processor)
+out_clip = in_clip.fl_image(process)
 cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
 
 # The strip_dirs() method removed the extraneous path from all the
