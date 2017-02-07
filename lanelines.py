@@ -6,6 +6,7 @@ from matplotlib.widgets import Button
 from matplotlib.widgets import Slider, Button, RadioButtons
 from moviepy.editor import VideoFileClip
 from mpl_toolkits.axes_grid1 import ImageGrid
+import cProfile
 import cv2
 import glob
 import matplotlib
@@ -155,21 +156,43 @@ def preprocess(img):
     undist = undistort(img)
     r,g,b = rgb_select(undist)
     h,l,s = hls_select(undist)
-    grad_gray = grad(cv2.cvtColor(undist, cv2.COLOR_RGB2GRAY))
-    grad_s = grad(s,k1=3,k2=15)
+    # grad_gray = grad(cv2.cvtColor(undist, cv2.COLOR_RGB2GRAY))
+    # grad_s = grad(s,k1=3,k2=15)
     o01 = threshold(r, 200, 255)
     o02 = threshold(g, 200, 255)
-    o06 = threshold(s, 170, 255)
-    o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
-    return undist,warp(scale(sor(sand(o01,o02),o12)))
+    o03 = threshold(s, 90, 255)
+    # o06 = threshold(s, 170, 255)
+    # o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
+    # o12 = sand(threshold(grad_gray[0], 30, 255), threshold(grad_gray[1], 0.7, 1.3))
+    return undist,warp(scale(sor(sand(o01,o02),o03)))
 
 
-def sliding_window(undistorted, warped_binary):
+def detect_lines(undistorted, warped_binary, left_fit, right_fit):
+    # from the next frame of video (also called "binary_warped")
+    # It's now much easier to find line pixels!
+    nonzero = warped_binary.nonzero()
+    nonzeroy = np.array(nonzero[0])
+    nonzerox = np.array(nonzero[1])
+    margin = 100
+    left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin))) 
+    right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))  
+    # Again, extract left and right line pixel positions
+    leftx = nonzerox[left_lane_inds]
+    lefty = nonzeroy[left_lane_inds] 
+    rightx = nonzerox[right_lane_inds]
+    righty = nonzeroy[right_lane_inds]
+    # Fit a second order polynomial to each
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+    return left_fit, right_fit
+
+
+def detect_lines_sliding_window(undistorted, warped_binary):
     # Assuming you have created a warped binary image called "warped_binary"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
     # Create an output image to draw on and  visualize the result
-    out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
+    # out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]/2)
@@ -203,8 +226,8 @@ def sliding_window(undistorted, warped_binary):
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
         # Draw the windows on the visualization image
-        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
-        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
+        # cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
+        # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
         # Identify the nonzero pixels in x and y within the window
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
         good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
@@ -227,13 +250,7 @@ def sliding_window(undistorted, warped_binary):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-    # Generate x and y values for plotting
-    ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-    return out_img,left_fit,right_fit
+    return left_fit, right_fit
 
 
 def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
@@ -259,16 +276,14 @@ def draw_lane(undistorted, warped_binary, left_fit, right_fit, unwarp):
 
 
 def get_processor():
-    left_window = deque(maxlen=5)
-    right_window = deque(maxlen=5)
+    left_window = deque(maxlen=30)
+    right_window = deque(maxlen=30)
     def process_image(img0):
         undistorted,warped_binary = preprocess(img0)
-        fit_img,left_fit,right_fit = sliding_window(undistorted,warped_binary)
+        left_fit, right_fit = detect_lines_sliding_window(undistorted,warped_binary) if len(left_window)==0 else detect_lines(undistorted,warped_binary,np.average(left_window,0), np.average(right_window,0))
         left_window.append(left_fit)
         right_window.append(right_fit)
-        left_fit_avg = np.average(left_window,0)
-        right_fit_avg = np.average(right_window,0)
-        annotated_image = draw_lane(undistorted, warped_binary, left_fit_avg, right_fit_avg, unwarp)
+        annotated_image = draw_lane(undistorted, warped_binary, np.average(left_window,0), np.average(right_window,0), unwarp)
         return annotated_image
     return process_image
 
@@ -276,23 +291,38 @@ def get_processor():
 fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
 fig.subplots_adjust(hspace=0.3, wspace=0.05)
 a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
-b = (sliding_window(*p) for p in a)
+# b = (detect_lines_sliding_window(*p) for p in a)
 for p in zip(sum(axes.tolist(),[]), a):
-    p[0].imshow(p[1],cmap='gray')
+    p[0].imshow(p[1][1],cmap='gray')
 fig.savefig("output_images/warped_binary_test_images.jpg")
 plt.close()
 
-fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-fig.subplots_adjust(hspace=0.3, wspace=0.05)
-b = (visualize(*sliding_window(preprocess(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg")))
-for p in zip(sum(axes.tolist(),[]), a):
-    p[0].imshow(p[1],cmap='gray')
-fig.savefig("output_images/found_lines_test_images.jpg")
-plt.close()
+# fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
+# fig.subplots_adjust(hspace=0.3, wspace=0.05)
+# b = (visualize(*detect_lines_sliding_window(preprocess(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg")))
+# for p in zip(sum(axes.tolist(),[]), a):
+#     p[0].imshow(p[1],cmap='gray')
+# fig.savefig("output_images/found_lines_test_images.jpg")
+# plt.close()
 
 
 # Process first test video.
 processor = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(processor)
-out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)')
+
+# Process second test video.
+processor = get_processor()
+in_clip = VideoFileClip("challenge_video.mp4")
+out_clip = in_clip.fl_image(processor)
+# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+cProfile.run('out_clip.write_videofile("output_images/challenge_output.mp4", audio=False)')
+
+# Process third test video.
+processor = get_processor()
+in_clip = VideoFileClip("harder_challenge_video.mp4")
+out_clip = in_clip.fl_image(processor)
+# out_clip.write_videofile('output_images/project_output.mp4', audio=False)
+cProfile.run('out_clip.write_videofile("output_images/harder_challenge_output.mp4", audio=False)')
