@@ -45,7 +45,7 @@
 
 *** Setup
 
-    #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+    #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
     from collections import deque
     from itertools import groupby, islice, zip_longest, cycle, filterfalse
     from matplotlib.collections import PatchCollection
@@ -70,7 +70,7 @@
 
 ***** Camera Calibration
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def measure_distortion(calibration_files):
           files = calibration_files
           objp = np.zeros((9*6,3), np.float32)
@@ -90,7 +90,7 @@
 
 ***** Distortion Correction
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def get_undistorter(calibration_files):
           mtx,dist,annotated_images = measure_distortion(calibration_files)
           return lambda x: cv2.undistort(x, mtx, dist, None, mtx), annotated_images
@@ -98,7 +98,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       undistort,annotated_images = get_undistorter(glob.glob("camera_cal/*.jpg"))
       fig = plt.figure()
       grid = ImageGrid(fig, 111, nrows_ncols=(4,4), axes_pad=0.0)
@@ -112,27 +112,27 @@
       #+RESULTS:
       #+begin_example
 
-      ... ... <matplotlib.image.AxesImage object at 0x7f397cf82630>
-      <matplotlib.image.AxesImage object at 0x7f397cf89320>
-      <matplotlib.image.AxesImage object at 0x7f397cf89898>
-      <matplotlib.image.AxesImage object at 0x7f397cf89e10>
-      <matplotlib.image.AxesImage object at 0x7f397cfd0080>
-      <matplotlib.image.AxesImage object at 0x7f397cfc5278>
-      <matplotlib.image.AxesImage object at 0x7f397cfc3908>
-      <matplotlib.image.AxesImage object at 0x7f397d00ba90>
-      <matplotlib.image.AxesImage object at 0x7f397d007128>
-      <matplotlib.image.AxesImage object at 0x7f397cffc748>
-      <matplotlib.image.AxesImage object at 0x7f397d079da0>
-      <matplotlib.image.AxesImage object at 0x7f397cf89f60>
-      <matplotlib.image.AxesImage object at 0x7f397cf95518>
-      <matplotlib.image.AxesImage object at 0x7f397cf95a90>
-      <matplotlib.image.AxesImage object at 0x7f397cf9c048>
-      <matplotlib.image.AxesImage object at 0x7f397cf9c5c0>
+      ... ... <matplotlib.image.AxesImage object at 0x7fb71aa7c320>
+      <matplotlib.image.AxesImage object at 0x7fb719dc6048>
+      <matplotlib.image.AxesImage object at 0x7fb719e9bf28>
+      <matplotlib.image.AxesImage object at 0x7fb71a97bbe0>
+      <matplotlib.image.AxesImage object at 0x7fb719ea9ba8>
+      <matplotlib.image.AxesImage object at 0x7fb719ebd748>
+      <matplotlib.image.AxesImage object at 0x7fb7190a0668>
+      <matplotlib.image.AxesImage object at 0x7fb71a5fcb38>
+      <matplotlib.image.AxesImage object at 0x7fb7190bf2e8>
+      <matplotlib.image.AxesImage object at 0x7fb71905c2b0>
+      <matplotlib.image.AxesImage object at 0x7fb71a653128>
+      <matplotlib.image.AxesImage object at 0x7fb7190515f8>
+      <matplotlib.image.AxesImage object at 0x7fb719089cc0>
+      <matplotlib.image.AxesImage object at 0x7fb71901bdd8>
+      <matplotlib.image.AxesImage object at 0x7fb719030710>
+      <matplotlib.image.AxesImage object at 0x7fb71a14b2e8>
 #+end_example
 
 ***** Perspective Measurement
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def measure_warp(img):
           top = 0
           bottom = img.shape[0]
@@ -142,7 +142,7 @@
                   plt.axvline(int(e.xdata), linewidth=2, color='r')
                   src.append((int(e.xdata),int(e.ydata)))
               if len(src)==4:
-                  dst.extend([(200,bottom),(200,bottom//2),(1080,bottom//2),(1080,bottom)])
+                  dst.extend([(300,bottom),(300,top),(980,top),(980,bottom)])
           was_interactive = matplotlib.is_interactive()
           if not matplotlib.is_interactive():
               plt.ion()
@@ -163,7 +163,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def get_warpers(corrected_image):
           M, Minv = measure_warp(corrected_image)
           return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), lambda x: cv2.warpPerspective(x, Minv, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
@@ -171,7 +171,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       warp,unwarp,M,Minv = get_warpers(undistort(mpimg.imread("test_images/straight_lines2.jpg")))
       #+END_SRC
 
@@ -183,7 +183,7 @@
 
 ***** Gradient and Color Thresholds
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def scale(img, factor=255.0):
           scale_factor = np.max(img)/factor
           return (img/scale_factor).astype(np.uint8)
@@ -191,7 +191,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def derivative(img, sobel_kernel=3):
           derivx = np.absolute(cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=sobel_kernel))
           derivy = np.absolute(cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=sobel_kernel))
@@ -202,7 +202,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def grad(img, k1=3, k2=15):
           _,_,g,_ = derivative(img, sobel_kernel=k1)
           _,_,_,p = derivative(img, sobel_kernel=k2)
@@ -211,7 +211,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def hls_select(img):
           hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
           h = hsv[:,:,0]
@@ -222,7 +222,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def rgb_select(img):
           rgb = img
           r = rgb[:,:,0]
@@ -233,7 +233,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def threshold(img, thresh_min=0, thresh_max=255):
           binary_output = np.zeros_like(img)
           binary_output[(img >= thresh_min) & (img <= thresh_max)] = 1
@@ -242,7 +242,7 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       land = lambda *x: np.logical_and.reduce(x)
       lor = lambda *x: np.logical_or.reduce(x)
       #+END_SRC
@@ -253,26 +253,25 @@
 
 ***** Lane-Finding
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
-      def preprocess(img):
-          undist = undistort(img)
-          r,g,b = rgb_select(undist)
-          h,l,s = hls_select(undist)
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      def highlight(img):
+          r,g,b = rgb_select(img)
+          h,l,s = hls_select(img)
           o01 = threshold(r, 200, 255)
           o02 = threshold(g, 200, 255)
-          o03 = threshold(s, 90, 255)
-          return undist,warp(scale(lor(land(o01,o02),o03)))
+          o03 = threshold(s, 200, 255)
+          return scale(lor(land(o01,o02),o03))
       #+END_SRC
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def detect_lines_sliding_window(warped_binary):
           # Assuming you have created a warped binary image called "warped_binary"
           # Take a histogram of the bottom half of the image
           histogram = np.sum(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
           # Create an output image to draw on and  visualize the result
-          # out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
+          out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
           # Find the peak of the left and right halves of the histogram
           # These will be the starting point for the left and right lines
           midpoint = np.int(histogram.shape[0]/2)
@@ -306,8 +305,8 @@
               win_xright_low = rightx_current - margin
               win_xright_high = rightx_current + margin
               # Draw the windows on the visualization image
-              # cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
-              # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
+              cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
+              cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
               # Identify the nonzero pixels in x and y within the window
               good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
               good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
@@ -330,26 +329,30 @@
           # Fit a second order polynomial to each
           left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
           right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+          # Generate x and y values for plotting
+          ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+          left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+          right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+          out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+          out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+          out_img[ploty.astype('int'),left_fitx.astype('int')] = [0, 255, 255]
+          out_img[ploty.astype('int'),right_fitx.astype('int')] = [0, 255, 255]
+          y_eval = warped_binary.shape[0]
           # Define conversions in x and y from pixels space to meters
           ym_per_pix = 30/720 # meters per pixel in y dimension
           xm_per_pix = 3.7/700 # meters per pixel in x dimension
           # Fit new polynomials to x,y in world space
-          # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
-          # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
-          left_fit_cr= np.polyfit(lefty, leftx, 2)
-          right_fit_cr = np.polyfit(righty, rightx, 2)
-          # Define y-value where we want radius of curvature
-          # I'll choose the maximum y-value, corresponding to the bottom of the image
-          y_eval = warped_binary.shape[0]
+          left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+          right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
           # Calculate the new radii of curvature
           left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
           right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-          return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
+          return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad, out_img
       #+END_SRC
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def detect_lines(warped_binary, left_fit, right_fit):
           # from the next frame of video (also called "binary_warped")
           # It's now much easier to find line pixels!
@@ -367,26 +370,26 @@
           # Fit a second order polynomial to each
           left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
           right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+          # Generate x and y values for plotting
+          ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+          left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+          right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+          y_eval = warped_binary.shape[0]
           # Define conversions in x and y from pixels space to meters
           ym_per_pix = 30/720 # meters per pixel in y dimension
           xm_per_pix = 3.7/700 # meters per pixel in x dimension
           # Fit new polynomials to x,y in world space
-          # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
-          # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
-          left_fit_cr= np.polyfit(lefty, leftx, 2)
-          right_fit_cr = np.polyfit(righty, rightx, 2)
-          # Define y-value where we want radius of curvature
-          # I'll choose the maximum y-value, corresponding to the bottom of the image
-          y_eval = warped_binary.shape[0]
+          left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+          right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
           # Calculate the new radii of curvature
           left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
           right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-          return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
+          return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad, None
       #+END_SRC
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def draw_lane(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
           # Create an image to draw the lines on
           warp_zero = np.zeros_like(warped_binary).astype(np.uint8)
@@ -416,17 +419,18 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
-      def get_processor():
-          bins = 10
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      def get_processor(nbins=10):
+          bins = nbins
           l_params = deque(maxlen=bins)
           r_params = deque(maxlen=bins)
           l_radius = deque(maxlen=bins)
           r_radius = deque(maxlen=bins)
           weights = np.arange(1,bins+1)/bins
           def process_image(img0):
-              undistorted,warped_binary = preprocess(img0)
-              l_fit, r_fit, l_res, r_res, l_curverad, r_curverad = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0,weights[-len(l_params):]), np.average(r_params,0,weights[-len(l_params):]))
+              undistorted = undistort(img0)
+              warped_binary = warp(highlight(undistorted))
+              l_fit, r_fit, l_res, r_res, l_curverad, r_curverad, _ = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0,weights[-len(l_params):]), np.average(r_params,0,weights[-len(l_params):]))
               l_params.append(l_fit)
               r_params.append(r_fit)
               l_radius.append(l_curverad)
@@ -444,42 +448,57 @@
 
       #+RESULTS:
 
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
-      fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-      fig.subplots_adjust(hspace=0.3, wspace=0.05)
-      a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      def visualize(filename, a):
+          fig, axes = plt.subplots(2,3,figsize=(24,12),subplot_kw={'xticks':[],'yticks':[]})
+          fig.subplots_adjust(hspace=0.03, wspace=0.05)
+          for p in zip(sum(axes.tolist(),[]), a):
+              p[0].imshow(p[1],cmap='gray')
+          plt.tight_layout()
+          fig.savefig(filename)
+          plt.close()
+      #+END_SRC
 
-      for p in zip(sum(axes.tolist(),[]), a):
-          p[0].imshow(p[1][1],cmap='gray')
+      #+RESULTS:
 
-      fig.savefig("output_images/warped_binary_test_images.jpg")
-      plt.close()
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/test_images.jpg",
+                (mpimg.imread(f) for f in cycle(glob.glob("test_images/test*.jpg"))))
+       
+      visualize("output_images/undistorted_test_images.jpg",
+                (undistort(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
+       
+      visualize("output_images/warped_undistorted_test_images.jpg",
+                (warp(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+       
+      visualize("output_images/binary_undistorted_test_images.jpg",
+                (highlight(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+       
+      visualize("output_images/warped_binary_undistorted_images.jpg",
+                (warp(highlight(undistort(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+       
+      visualize("output_images/detected_lines_test_images.jpg",
+                (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+      visualize("output_images/drawn_lanes_test_images.jpg", 
+                (get_processor(1)(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      process = get_processor()
+      in_clip = VideoFileClip("project_video.mp4")
+      out_clip = in_clip.fl_image(process)
+      cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
       #+END_SRC
 
       #+RESULTS:
       : 
-      : ... ... <matplotlib.image.AxesImage object at 0x7f397cce50b8>
-      : <matplotlib.image.AxesImage object at 0x7f397ce60b00>
-      : <matplotlib.image.AxesImage object at 0x7f397cdee978>
-      : <matplotlib.image.AxesImage object at 0x7f397cd59eb8>
-      : <matplotlib.image.AxesImage object at 0x7f397cd595c0>
-      : <matplotlib.image.AxesImage object at 0x7f397cd9c5c0>
-
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
-      process = get_processor()
-      b = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
-      #+END_SRC
-
-      #+RESULTS:
-
-      #+BEGIN_SRC python :results output :session :tangle lanelines2.py :comments org :exports code
-      process = get_processor()
-      in_clip = VideoFileClip("project_video.mp4")
-      out_clip = in_clip.fl_image(process)
-      out_clip.write_videofile('output_images/project_output.mp4', audio=False)
-      #+END_SRC
-
-      #+RESULTS:
+      : >>> [MoviePy] >>>> Building video output_images/project_output.mp4
+      : [MoviePy] Writing video output_images/project_output.mp4
+      : [MoviePy] Done.
+      : [MoviePy] >>>> Video ready: output_images/project_output.mp4
 
 *** Discussion
 
