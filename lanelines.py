@@ -58,7 +58,7 @@ def measure_warp(img):
             plt.axvline(int(e.xdata), linewidth=2, color='r')
             src.append((int(e.xdata),int(e.ydata)))
         if len(src)==4:
-            dst.extend([(200,bottom),(200,bottom//2),(1080,bottom//2),(1080,bottom)])
+            dst.extend([(300,bottom),(300,top),(980,top),(980,bottom)])
     was_interactive = matplotlib.is_interactive()
     if not matplotlib.is_interactive():
         plt.ion()
@@ -150,14 +150,13 @@ theta = {
     'max_line_gap':1}
 
 
-def preprocess(img):
-    undist = undistort(img)
-    r,g,b = rgb_select(undist)
-    h,l,s = hls_select(undist)
+def highlight(img):
+    r,g,b = rgb_select(img)
+    h,l,s = hls_select(img)
     o01 = threshold(r, 200, 255)
     o02 = threshold(g, 200, 255)
-    o03 = threshold(s, 90, 255)
-    return undist,warp(scale(lor(land(o01,o02),o03)))
+    o03 = threshold(s, 200, 255)
+    return scale(lor(land(o01,o02),o03))
 
 
 def detect_lines(warped_binary, left_fit, right_fit):
@@ -177,21 +176,23 @@ def detect_lines(warped_binary, left_fit, right_fit):
     # Fit a second order polynomial to each
     left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
     right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+    # Generate x and y values for plotting
+    ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+    y_eval = warped_binary.shape[0]
     # Define conversions in x and y from pixels space to meters
     ym_per_pix = 30/720 # meters per pixel in y dimension
     xm_per_pix = 3.7/700 # meters per pixel in x dimension
     # Fit new polynomials to x,y in world space
-    # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
-    # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
-    left_fit_cr= np.polyfit(lefty, leftx, 2)
-    right_fit_cr = np.polyfit(righty, rightx, 2)
-    # Define y-value where we want radius of curvature
-    # I'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = warped_binary.shape[0]
+    left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
+
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad, None
 
 
 def detect_lines_sliding_window(warped_binary):
@@ -199,7 +200,7 @@ def detect_lines_sliding_window(warped_binary):
     # Take a histogram of the bottom half of the image
     histogram = np.sum(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
     # Create an output image to draw on and  visualize the result
-    # out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
+    out_img = np.dstack((warped_binary, warped_binary, warped_binary))*255
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]/2)
@@ -233,8 +234,8 @@ def detect_lines_sliding_window(warped_binary):
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
         # Draw the windows on the visualization image
-        # cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
-        # cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
+        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
+        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
         # Identify the nonzero pixels in x and y within the window
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
         good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
@@ -257,21 +258,27 @@ def detect_lines_sliding_window(warped_binary):
     # Fit a second order polynomial to each
     left_fit,left_res,_,_,_ = np.polyfit(lefty, leftx, 2, full=True)
     right_fit,right_res,_,_,_ = np.polyfit(righty, rightx, 2, full=True)
+    # Generate x and y values for plotting
+    ploty = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+    out_img[ploty.astype('int'),left_fitx.astype('int')] = [0, 255, 255]
+    out_img[ploty.astype('int'),right_fitx.astype('int')] = [0, 255, 255]
+
+    y_eval = warped_binary.shape[0]
     # Define conversions in x and y from pixels space to meters
     ym_per_pix = 30/720 # meters per pixel in y dimension
     xm_per_pix = 3.7/700 # meters per pixel in x dimension
     # Fit new polynomials to x,y in world space
-    # left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
-    # right_fit_cr = np.polyfit(lefty*ym_per_pix, rightx*xm_per_pix, 2)
-    left_fit_cr= np.polyfit(lefty, leftx, 2)
-    right_fit_cr = np.polyfit(righty, rightx, 2)
-    # Define y-value where we want radius of curvature
-    # I'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = warped_binary.shape[0]
+    left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad
+
+    return left_fit, right_fit, np.sqrt(left_fit[1]/len(leftx)), np.sqrt(right_fit[1]/len(rightx)), left_curverad, right_curverad, out_img
 
 
 def draw_lane(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
@@ -301,16 +308,17 @@ def draw_lane(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
     return result
 
 
-def get_processor():
-    bins = 10
+def get_processor(nbins=10):
+    bins = nbins
     l_params = deque(maxlen=bins)
     r_params = deque(maxlen=bins)
     l_radius = deque(maxlen=bins)
     r_radius = deque(maxlen=bins)
     weights = np.arange(1,bins+1)/bins
     def process_image(img0):
-        undistorted,warped_binary = preprocess(img0)
-        l_fit, r_fit, l_res, r_res, l_curverad, r_curverad = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0,weights[-len(l_params):]), np.average(r_params,0,weights[-len(l_params):]))
+        undistorted = undistort(img0)
+        warped_binary = warp(highlight(undistorted))
+        l_fit, r_fit, l_res, r_res, l_curverad, r_curverad, _ = detect_lines_sliding_window(warped_binary) if len(l_params)==0 else detect_lines(warped_binary,np.average(l_params,0,weights[-len(l_params):]), np.average(r_params,0,weights[-len(l_params):]))
         l_params.append(l_fit)
         r_params.append(r_fit)
         l_radius.append(l_curverad)
@@ -326,58 +334,44 @@ def get_processor():
     return process_image
 
 
-fig, axes = plt.subplots(3,2,figsize=(12,6),subplot_kw={'xticks':[],'yticks':[]})
-fig.subplots_adjust(hspace=0.3, wspace=0.05)
-a = (preprocess(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
-for p in zip(sum(axes.tolist(),[]), a):
-    p[0].imshow(p[1][1],cmap='gray')
-fig.savefig("output_images/warped_binary_test_images.jpg")
-plt.close()
+# Visualize pipeline stages
+
+def visualize(filename, a):
+    fig, axes = plt.subplots(2,3,figsize=(24,12),subplot_kw={'xticks':[],'yticks':[]})
+    fig.subplots_adjust(hspace=0.03, wspace=0.05)
+    for p in zip(sum(axes.tolist(),[]), a):
+        p[0].imshow(p[1],cmap='gray')
+    plt.tight_layout()
+    fig.savefig(filename)
+    plt.close()
 
 
-# Test processor
-process = get_processor()
-b = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
+visualize("output_images/test_images.jpg",
+          (mpimg.imread(f) for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+visualize("output_images/undistorted_test_images.jpg",
+          (undistort(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+visualize("output_images/warped_undistorted_test_images.jpg",
+          (warp(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+visualize("output_images/binary_undistorted_test_images.jpg",
+          (highlight(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+visualize("output_images/warped_binary_undistorted_images.jpg",
+          (warp(highlight(undistort(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+visualize("output_images/detected_lines_test_images.jpg", (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+
+visualize("output_images/drawn_lane_test_images.jpg", (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+process = get_processor(1)
+a = (process(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg")))
 
 # Process first test video.
 process = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(process)
 cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
-
-# Process second test video.
-process = get_processor()
-in_clip = VideoFileClip("challenge_video.mp4")
-out_clip = in_clip.fl_image(process)
-out_clip.write_videofile('output_images/challenge_output.mp4', audio=False)
-
-# Process third test video.
-process = get_processor()
-in_clip = VideoFileClip("harder_challenge_video.mp4")
-out_clip = in_clip.fl_image(process)
-out_clip.write_videofile('output_images/harder_challenge_output.mp4', audio=False)
-
-# The strip_dirs() method removed the extraneous path from all the
-# module names. The sort_stats() method sorted all the entries
-# according to the standard module/line/name string that is
-# printed. The print_stats() method printed out all the statistics. 
-import pstats
-p = pstats.Stats('restats')
-p.strip_dirs().sort_stats(-1).print_stats()
-
-# The first call will actually sort the list by function name, and the second call will print out the statistics.
-p.sort_stats('name')
-p.print_stats()
-
-# some interesting calls to experiment with
-p.sort_stats('cumulative').print_stats(10)
-
-# to see what functions were looping a lot, and taking a lot of time
-p.sort_stats('time').print_stats(10)
-
-# get a list of callers for each of the listed functions
-p.print_callers(.5, 'init')
-
-p.print_callees()
-p.add('restats')
 
