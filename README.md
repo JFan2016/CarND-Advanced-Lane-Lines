@@ -43,6 +43,7 @@ to import the packages that are used.
     from collections import deque
     from itertools import groupby, islice, zip_longest, cycle, filterfalse
     from moviepy.editor import VideoFileClip
+    from mpl_toolkits.axes_grid1 import ImageGrid
     import cProfile
     import cv2
     import glob
@@ -147,11 +148,35 @@ The annotated calibration images are shown in the figure below.
 
 ![img](output_images/annotated_calibration_images.jpg)
 
-We show the effects of applying the image undistorter to a
+As discussed shortly, the effects of image distortion can be
+subtle and difficult notice with the naked eye.  It helps
+therefore to apply it to examples where the effect will be more
+vivid.  The first of the camera calibration images that we
+recently used to *measure* the camera distortion is a good
+candidate for *correcting* distortion.  The following figure has
+the original, distorted image.
+
+![img](camera_cal/calibration1.jpg)
+
+It should be evident at a minimum that there is radial
+distortion as the horizontal and vertical lines&#x2014;which should
+be straight&#x2014;are curved outward from the center.
+
+Next we use the camera matrix and distortion coefficients
+embedded with in the `undistort` function that we obtained in
+order to correct for these effects.  
+
+    fig = plt.figure()
+    plt.imshow(undistort(mpimg.imread("camera_cal/calibration1.jpg")))
+    fig.savefig("output_images/undistorted_calibration1.jpg")
+
+![img](output_images/undistorted_calibration1.jpg)
+
+Next, we show the effects of applying the image undistorter to a
 sequence of 6 road images taken with this same camera.  These 6
 images are a test sequence that will reappear many times through
 the remainder of this discussion as other image processing steps
-are taken up.  
+are taken up.
 
 The `visualize` function helps us view a gallery of test images
 in "ganged up" layout, and this is helpful as we develop the
@@ -498,6 +523,8 @@ The function `detect_lines_sliding_window` returns quite a few values:
 7.  annotated image, with sliding windows, selected pixels, and
     modeled curves
 
+The code for this function is shown here. 
+
     def detect_lines_sliding_window(warped_binary):
         # Assuming you have created a warped binary image called "warped_binary"
         # Take a histogram of the bottom half of the image
@@ -664,7 +691,8 @@ not be correct, because that fit does not account for the
 warping between the three-dimensional real world and the
 two-dimensional pixel-space of the image plane.  Third, for the
 left and right lanes we calculate the radius of curvature using
-the model fit parameters, according to this formula.
+the model fit parameters, according to this formula, where \(A\)
+and \(B\) are fit parameters.
 
 \[ R_{curve} = \frac{\left(1 + \left(2 A y +
       B\right)^2\right)^{3/2}}{\left| 2 A \right|} \]
@@ -722,7 +750,16 @@ plane.  It plays no role in calculating the car position, but
 *only* if we assume that position is to be taken at the bottom
 of the image.
 
-With that note, finally we can move on to the full processing
+Note also that as we annotate the image with the radius of
+curvature for the left and right lanes, we divide the
+distances, which were calculated in meters, by a factor of 1000
+in order to present them in kilometers.  Given the geometry of
+the problem and the distances involved, I argue that kilometers
+and not meters are the natural scale length.  Distances in
+meters can be provided upon request, or simply calculated in the
+reader's head.
+
+With those notes, finally we can move on to the full processing
 pipeline.  
 
 The `get_processor` function returns a "processor" function.  A
@@ -808,6 +845,170 @@ video clip.
 
 ## Discussion
 
+This was a *very* challenging project, perhaps the most
+challenging so far in this course.  
+
 ### What Worked Well
 
+-   Alternate Color-Spaces
+
+    If the reader refers back to the `highlight` function
+    described above, and which is a key function that combines
+    various aspects of image analysis together in order to
+    highlight the lane lines, he or she should notice certain
+    things.  In particular, it only uses color-spaces:  RBG and
+    HLS, and within those, only certain channels.  
+    
+    In the exploratory phase of this project, it seemed that in
+    the RGB color-space, the Red (R) and Green (G) colors
+    independently were somewhat effective in picking out lane
+    lines and better when combined with an *AND* operation.  This
+    surprised me somewhat, and still warrants further
+    investigation.  The drawback was that while these channels
+    worked well in good lighting conditions, they performed poorly
+    in shadows.  
+    
+    Moreover, the Saturation (S) channel in the HLS color-space
+    also was *very* effective in highlighting lines under various
+    lighting conditions.  Its drawback is that it highlights too
+    many other features as well, like other cars and
+    discolorations on the road.  
+    
+    Finally, slicing out and applying thresholds to color-spaces
+    seems to be a relatively inexpensive operation
+    computationally, which is important for rapid iteration.
+
+-   Color Thresholding
+
+    Naturally, along with both color and gradient computation one
+    typically will apply a threshold in order to obtain a binary
+    image with "activated" pixels associated with lane-lines.
+    This worked well, of course, but more important judicious use
+    of thresholds was somewhat effective in mitigating the
+    spurious features that the color-spaces brought in, such as
+    road discolorations.
+
+-   Perspective Transform
+
+    Of course, performing a perspective transform to a bird's-eye
+    view is almost a necessary component of a project like this.
+    However, it also had another unexpected benefit.  As alluded
+    to above, it naturally shoves portions of the image outside of
+    the trapezoidal source region *outside* the frame when the
+    transform is applied.  I had anticipated a need for a masking
+    operation on the image, but found that I did not need it as
+    the perspective transform naturally did most or all of the
+    masking for me.  
+
+-   Lane Detection
+
+    I adapted both the sliding window and non-sliding window lane
+    detection algorithms almost exactly as they were presented in
+    the lecture notes, and they worked perfectly, without a
+    hitch.  
+
+-   Radius-of-Curvature and Car Position Calculation
+
+    Likewise, I applied the radius-of-curvature calculation almost
+    exactly as presented in the lecture material, and it also
+    worked well.  As for the car position calculaton, it turned
+    out to be quite trivial. 
+
+-   Buffering
+
+    Using a ring-buffer with the Python [`deque`](https://docs.python.org/2/library/collections.html#collections.deque) data structure
+    along with the Numpy [`average`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.average.html#numpy-average) function made it *very* easy to
+    implement a weighted average over some number of previous
+    frames.  Not only did this smooth out the line detections,
+    lane drawings, and distance calculations, it also had the
+    added benefit of significantly increasing the robustness of
+    the whole pipeline.  Without buffering&#x2014;and without a
+    mechanism for identifying and discarding bad detections&#x2014;the
+    lane would often bend and swirl in odd directions as it became
+    confused by spurious data from shadows, road discolorations,
+    etc.  With buffering **almost** all of that went away, even
+    without discarding bad detections.  If you pay close attention
+    to the video, near the very end at around the 48s mark, the
+    drawn lane is slightly attracted to and bends slightly toward
+    the black car that is passing on the right.  Without
+    buffering, this was a significant problem.  With more work on
+    the combination of gradient and color thresholds and perhaps
+    by discarding bad detections this problem would have been
+    eliminated.  However, I found that most of it could be
+    banished simply with buffering.  
+
+-   Python Generators
+
+    I continue to be pleased with the ease of composition in a
+    functional style that is enabled by use of [Python generators](http://davidaventimiglia.com/python_generators.html).
+    Wrapping generators for filenames, images, and the output of
+    other functions in the [`cycle`](https://docs.python.org/3/library/itertools.html#itertools.cycle) generator from [itertools](https://docs.python.org/3/library/itertools.html) was a
+    mainstay, especially for the 6 test images.  This was because
+    I could cycle through the processed images either one by one,
+    or in batches of 6, right in the Python interpreter.  It was
+    very effective for debugging. 
+
+### What Did Not Work Well
+
+-   Gradient Thresholding
+
+    I found it very difficult to coax much usable signal out of
+    the gradient calculations and was grateful that I could get by
+    without them.
+    
+    Moreover, the gradient calculations I was performing added
+    *significant* computational overhead.  With gradient
+    thresholding and color thresholding it took approximately 15
+    minutes to process the project video.  With just color
+    thresholding I cut that time by a third, down to just 5
+    minutes.  No doubt some of this is do to the `arctan2`
+    function that computes the gradient direction, since `arctan2`
+    is kwown to be an expensive operation.  Nevertheless, the
+    profiler that I used did show significant time spent just in
+    the `sobel` operation as well.
+
 ### What Could Be Improved
+
+-   Gradient and Color Thresholding
+
+    There is almost as much art as there is science in
+    highlighting the lane lines (and *just* the lane lines)
+    robustly, in a wide range of conditions.  There are many
+    hyper-parameters and many many ways to combine these
+    operations.  I spent considerable time on this aspect of the
+    project yet never stumbled upon a "magic" combination that
+    worked very well in all conditions.  At present I have settled
+    for simple combination of color thresholds with no gradients
+    and only middling performance.  I'm sure I can do better.
+
+-   Discarding Bad Detections
+
+    I started down the path of discarding bad line detections,
+    which is why I adapted the Numpy [`polyfit`](https://docs.scipy.org/doc/numpy/reference/generated/numpy.polyfit.html#numpy-polyfit) function to return
+    residuals, but on the project video at least I found that with
+    buffering I did not need to do this.  Nevertheless, I think it
+    would be prudent to add it in order to make the pipeline more
+    robust.  
+
+-   Code Refactoring
+
+    There is a great deal of code duplication, especially between
+    the `detect_lines_sliding_window` and `detect_lines`
+    functions.  Also, the car position calculation probably should
+    not be performed in the `draw_lane` function.  These blemishes
+    are far from fatal and removing them is not part of the
+    project, but they make that part of the code unwieldy,
+    difficult to maintain, and somewhat difficult to read.  I
+    would definitely refactor this portion of the code in
+    subsequent revisions.  
+
+-   Measuring Perspective
+
+    As discussed above, the target region for the perspective
+    transform is hard-coded to be a rectangle from the bottom of
+    the image to the top, 300 pixels in from the left edge and 300
+    pixels in from the right edge.  While this worked well in the
+    end, it only was brought about by trial-and-error, and is not
+    very flexible.  It would be better to adapt the `measure_warp`
+    function so that the user has more freedom in specifying this
+    region.
