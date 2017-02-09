@@ -548,7 +548,7 @@
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       in_clip = VideoFileClip("project_video.mp4")
-      out_clip = in_clip.fl_image(get_processor(5))
+      out_clip = in_clip.fl_image(get_processor(50))
       cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
       #+END_SRC
 
@@ -558,6 +558,9 @@
       : [MoviePy] Writing video output_images/project_output.mp4
       : [MoviePy] Done.
       : [MoviePy] >>>> Video ready: output_images/project_output.mp4
+      : xkbcommon: ERROR: failed to add default include path /home/ray/mc-x64-2.7/conda-bld/qt_1475858339722/_b_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_/lib
+      : Qt: Failed to create XKB context!
+      : Use QT_XKB_CONFIG_ROOT environmental variable to provide an additional search path, add ':' as separator to provide several search paths and/or make sure that XKB configuration data directory contains recent enough contents, to update please see http://cgit.freedesktop.org/xkeyboard-config/ .
 
       #+HTML: <iframe width="800" height="450" align="middle" src="https://www.youtube.com/embed/rkH9aivTA38" frameborder="0" allowfullscreen></iframe>
 

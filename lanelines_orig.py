@@ -370,4 +370,3 @@ process = get_processor()
 in_clip = VideoFileClip("project_video.mp4")
 out_clip = in_clip.fl_image(process)
 cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
-
