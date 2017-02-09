@@ -1024,8 +1024,9 @@
       : Qt: Failed to create XKB context!
       : Use QT_XKB_CONFIG_ROOT environmental variable to provide an additional search path, add ':' as separator to provide several search paths and/or make sure that XKB configuration data directory contains recent enough contents, to update please see http://cgit.freedesktop.org/xkeyboard-config/ .
 
-      We can see the result for the project video in the following
-      video clip.
+      Processing the project video with this pipeline produces [[https://youtu.be/xuDNjYzcjzs][this
+      video]] with the lanes detected and drawn, and the radius of
+      curvature estimates and car positions added.
 
       #+HTML: <iframe width="800" height="450" src="https://www.youtube.com/embed/xuDNjYzcjzs" frameborder="0" allowfullscreen></iframe>
 

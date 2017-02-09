@@ -836,8 +836,9 @@ effects were noticed with a set of 50-slot ring buffers.
     out_clip = in_clip.fl_image(get_processor(50))
     cProfile.run('out_clip.write_videofile("output_images/project_output.mp4", audio=False)', 'restats')
 
-We can see the result for the project video in the following
-video clip.
+Processing the project video with this pipeline produces [this
+video](https://youtu.be/xuDNjYzcjzs) with the lanes detected and drawn, and the radius of
+curvature estimates and car positions added.
 
 <iframe width="800" height="450" src="https://www.youtube.com/embed/xuDNjYzcjzs" frameborder="0" allowfullscreen></iframe>
 
