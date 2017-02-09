@@ -79,7 +79,13 @@ def measure_warp(img):
 
 def get_warpers(corrected_image):
     M, Minv = measure_warp(corrected_image)
-    return lambda x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), lambda x: cv2.warpPerspective(x, Minv, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
+    return lambda x: cv2.warpPerspective(x,
+                                         M,
+                                         x.shape[:2][::-1],
+                                         flags=cv2.INTER_LINEAR), lambda x: cv2.warpPerspective(x,
+                                                                                                Minv,
+                                                                                                x.shape[:2][::-1],
+                                                                                                flags=cv2.INTER_LINEAR), M, Minv
 
 warp,unwarp,M,Minv = get_warpers(undistort(mpimg.imread("test_images/straight_lines2.jpg")))
 
