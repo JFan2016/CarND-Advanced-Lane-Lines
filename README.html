@@ -1,0 +1,755 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Advanced Lane Lines</title>
+<!-- 2017-02-08 Wed 16:18 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="David A. Ventimiglia" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<style>@import 'https://fonts.googleapis.com/css?family=Quattrocento';</style>
+<link rel="stylesheet" type="text/css" href="base.css"/>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Advanced Lane Lines</h1>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">Introduction</h2>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">Methods</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The goals / steps of this project are the following:
+</p>
+
+<ul class="org-ul">
+<li>Compute the camera calibration matrix and distortion coefficients
+given a set of chessboard images.
+</li>
+<li>Apply a distortion correction to raw images.
+</li>
+<li>Use color transforms, gradients, etc., to create a thresholded
+binary image.
+</li>
+<li>Apply a perspective transform to rectify binary image ("birds-eye
+view").
+</li>
+<li>Detect lane pixels and fit to find the lane boundary.
+</li>
+<li>Determine the curvature of the lane and vehicle position with
+respect to center.
+</li>
+<li>Warp the detected lane boundaries back onto the original image.
+</li>
+<li>Output visual display of the lane boundaries and numerical
+estimation of lane curvature and vehicle position.
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">Setup</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">from</span> collections <span style="color: #b4fa70;">import</span> deque
+<span style="color: #b4fa70;">from</span> itertools <span style="color: #b4fa70;">import</span> groupby, islice, zip_longest, cycle, filterfalse
+<span style="color: #b4fa70;">from</span> matplotlib.collections <span style="color: #b4fa70;">import</span> PatchCollection
+<span style="color: #b4fa70;">from</span> matplotlib.patches <span style="color: #b4fa70;">import</span> Polygon
+<span style="color: #b4fa70;">from</span> matplotlib.widgets <span style="color: #b4fa70;">import</span> Button
+<span style="color: #b4fa70;">from</span> matplotlib.widgets <span style="color: #b4fa70;">import</span> Slider, Button, RadioButtons
+<span style="color: #b4fa70;">from</span> moviepy.editor <span style="color: #b4fa70;">import</span> VideoFileClip
+<span style="color: #b4fa70;">from</span> mpl_toolkits.axes_grid1 <span style="color: #b4fa70;">import</span> ImageGrid
+<span style="color: #b4fa70;">import</span> cProfile
+<span style="color: #b4fa70;">import</span> cv2
+<span style="color: #b4fa70;">import</span> glob
+<span style="color: #b4fa70;">import</span> matplotlib
+<span style="color: #b4fa70;">import</span> matplotlib.image <span style="color: #b4fa70;">as</span> mpimg
+<span style="color: #b4fa70;">import</span> matplotlib.pyplot <span style="color: #b4fa70;">as</span> plt
+<span style="color: #b4fa70;">import</span> numpy <span style="color: #b4fa70;">as</span> np
+<span style="color: #b4fa70;">import</span> pdb
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">Preprocessing</h3>
+<div class="outline-text-3" id="text-2-2">
+</div><div id="outline-container-sec-2-2-1" class="outline-4">
+<h4 id="sec-2-2-1">Camera Calibration</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">measure_distortion</span>(calibration_files):
+    <span style="color: #fcaf3e;">files</span> = calibration_files
+    <span style="color: #fcaf3e;">objp</span> = np.zeros((9*6,3), np.float32)
+    <span style="color: #fcaf3e;">objp</span>[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
+    <span style="color: #fcaf3e;">stage1</span> = <span style="color: #e090d7;">map</span>(<span style="color: #b4fa70;">lambda</span> x: (x,), cycle(files))
+    <span style="color: #fcaf3e;">stage2</span> = <span style="color: #e090d7;">map</span>(<span style="color: #b4fa70;">lambda</span> x: x + (mpimg.imread(x[0]),), stage1)
+    <span style="color: #fcaf3e;">stage3</span> = <span style="color: #e090d7;">map</span>(<span style="color: #b4fa70;">lambda</span> x: x + (cv2.findChessboardCorners(cv2.cvtColor(x[1], cv2.COLOR_RGB2GRAY), (9,6)),), stage2)
+    <span style="color: #fcaf3e;">stage4</span> = <span style="color: #e090d7;">map</span>(<span style="color: #b4fa70;">lambda</span> x: x + (cv2.drawChessboardCorners(np.copy(x[1]), (9,6), *(x[2][::-1])),), stage3)
+    <span style="color: #fcaf3e;">filenames</span>,<span style="color: #fcaf3e;">images</span>,<span style="color: #fcaf3e;">corners</span>,<span style="color: #fcaf3e;">annotated_images</span> = <span style="color: #e090d7;">zip</span>(*<span style="color: #e090d7;">filter</span>(<span style="color: #b4fa70;">lambda</span> x: x[2][0], islice(stage4, <span style="color: #e090d7;">len</span>(files))))
+    <span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">imgpoints</span> = <span style="color: #e090d7;">zip</span>(*corners)
+    <span style="color: #fcaf3e;">objpoints</span> = [objp <span style="color: #b4fa70;">for</span> i <span style="color: #b4fa70;">in</span> <span style="color: #e090d7;">range</span>(<span style="color: #e090d7;">len</span>(imgpoints))]
+    <span style="color: #fcaf3e;">ret</span>, <span style="color: #fcaf3e;">mtx</span>, <span style="color: #fcaf3e;">dist</span>, <span style="color: #fcaf3e;">rvecs</span>, <span style="color: #fcaf3e;">tvecs</span> = cv2.calibrateCamera(objpoints, imgpoints, <span style="color: #e090d7;">list</span>(islice(stage2,1))[0][1].shape[:2:][::-1], <span style="color: #e9b2e3;">None</span>, <span style="color: #e9b2e3;">None</span>)
+    <span style="color: #b4fa70;">return</span> mtx, dist, <span style="color: #e090d7;">zip</span>(filenames, annotated_images)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2-2" class="outline-4">
+<h4 id="sec-2-2-2">Distortion Correction</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">get_undistorter</span>(calibration_files):
+    <span style="color: #fcaf3e;">mtx</span>,<span style="color: #fcaf3e;">dist</span>,<span style="color: #fcaf3e;">annotated_images</span> = measure_distortion(calibration_files)
+    <span style="color: #b4fa70;">return</span> <span style="color: #b4fa70;">lambda</span> x: cv2.undistort(x, mtx, dist, <span style="color: #e9b2e3;">None</span>, mtx), annotated_images
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #fcaf3e;">undistort</span>,<span style="color: #fcaf3e;">annotated_images</span> = get_undistorter(glob.glob(<span style="color: #e9b96e;">"camera_cal/*.jpg"</span>))
+<span style="color: #fcaf3e;">fig</span> = plt.figure()
+<span style="color: #fcaf3e;">grid</span> = ImageGrid(fig, 111, nrows_ncols=(4,4), axes_pad=0.0)
+
+<span style="color: #b4fa70;">for</span> p <span style="color: #b4fa70;">in</span> <span style="color: #e090d7;">zip</span>(annotated_images, grid):
+    p[1].imshow(p[0][1])
+
+fig.savefig(<span style="color: #e9b96e;">"output_images/annotated_calibration_images.jpg"</span>)
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/annotated_calibration_images.jpg" alt="annotated_calibration_images.jpg" width="800px" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">visualize</span>(filename, a):
+    <span style="color: #fcaf3e;">fig</span>, <span style="color: #fcaf3e;">axes</span> = plt.subplots(2,3,figsize=(24,12),subplot_kw={<span style="color: #e9b96e;">'xticks'</span>:[],<span style="color: #e9b96e;">'yticks'</span>:[]})
+    fig.subplots_adjust(hspace=0.03, wspace=0.05)
+    <span style="color: #b4fa70;">for</span> p <span style="color: #b4fa70;">in</span> <span style="color: #e090d7;">zip</span>(<span style="color: #e090d7;">sum</span>(axes.tolist(),[]), a):
+        p[0].imshow(p[1],cmap=<span style="color: #e9b96e;">'gray'</span>)
+    plt.tight_layout()
+    fig.savefig(filename)
+    plt.close()
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/test_images.jpg"</span>,
+          (mpimg.imread(f) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/test_images.jpg" alt="test_images.jpg" width="800px" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/undistorted_test_images.jpg"</span>,
+          (undistort(mpimg.imread(f)) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/undistorted_test_images.jpg" alt="undistorted_test_images.jpg" width="800px" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2-3" class="outline-4">
+<h4 id="sec-2-2-3">Perspective Measurement</h4>
+<div class="outline-text-4" id="text-2-2-3">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">measure_warp</span>(img):
+    <span style="color: #fcaf3e;">top</span> = 0
+    <span style="color: #fcaf3e;">bottom</span> = img.shape[0]
+    <span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">handler</span>(e):
+        <span style="color: #b4fa70;">if</span> <span style="color: #e090d7;">len</span>(src)&lt;4:
+            plt.axhline(<span style="color: #e090d7;">int</span>(e.ydata), linewidth=2, color=<span style="color: #e9b96e;">'r'</span>)
+            plt.axvline(<span style="color: #e090d7;">int</span>(e.xdata), linewidth=2, color=<span style="color: #e9b96e;">'r'</span>)
+            src.append((<span style="color: #e090d7;">int</span>(e.xdata),<span style="color: #e090d7;">int</span>(e.ydata)))
+        <span style="color: #b4fa70;">if</span> <span style="color: #e090d7;">len</span>(src)==4:
+            dst.extend([(300,bottom),(300,top),(980,top),(980,bottom)])
+    <span style="color: #fcaf3e;">was_interactive</span> = matplotlib.is_interactive()
+    <span style="color: #b4fa70;">if</span> <span style="color: #b4fa70;">not</span> matplotlib.is_interactive():
+        plt.ion()
+    <span style="color: #fcaf3e;">fig</span> = plt.figure()
+    plt.imshow(img)
+    <span style="color: #b4fa70;">global</span> src
+    <span style="color: #b4fa70;">global</span> dst
+    <span style="color: #fcaf3e;">src</span> = []
+    <span style="color: #fcaf3e;">dst</span> = []
+    <span style="color: #fcaf3e;">cid1</span> = fig.canvas.mpl_connect(<span style="color: #e9b96e;">'button_press_event'</span>, handler)
+    <span style="color: #fcaf3e;">cid2</span> = fig.canvas.mpl_connect(<span style="color: #e9b96e;">'close_event'</span>, <span style="color: #b4fa70;">lambda</span> e: e.canvas.stop_event_loop())
+    fig.canvas.start_event_loop(timeout=-1)
+    <span style="color: #fcaf3e;">M</span> = cv2.getPerspectiveTransform(np.asfarray(src, np.float32), np.asfarray(dst, np.float32))
+    <span style="color: #fcaf3e;">Minv</span> = cv2.getPerspectiveTransform(np.asfarray(dst, np.float32), np.asfarray(src, np.float32))
+    matplotlib.interactive(was_interactive)
+    <span style="color: #b4fa70;">return</span> M, Minv
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">get_warpers</span>(corrected_image):
+    <span style="color: #fcaf3e;">M</span>, <span style="color: #fcaf3e;">Minv</span> = measure_warp(corrected_image)
+    <span style="color: #b4fa70;">return</span> <span style="color: #b4fa70;">lambda</span> x: cv2.warpPerspective(x, M, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), <span style="color: #b4fa70;">lambda</span> x: cv2.warpPerspective(x, Minv, x.shape[:2][::-1], flags=cv2.INTER_LINEAR), M, Minv
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #fcaf3e;">warp</span>,<span style="color: #fcaf3e;">unwarp</span>,<span style="color: #fcaf3e;">M</span>,<span style="color: #fcaf3e;">Minv</span> = get_warpers(undistort(mpimg.imread(<span style="color: #e9b96e;">"test_images/straight_lines2.jpg"</span>)))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/figure_3-1.png" alt="figure_3-1.png" width="800px" />
+</p>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/figure_3-2.png" alt="figure_3-2.png" width="800px" />
+</p>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/figure_3-3.png" alt="figure_3-3.png" width="800px" />
+</p>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/figure_3-4.png" alt="figure_3-4.png" width="800px" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/warped_undistorted_test_images.jpg"</span>,
+          (warp(undistort(mpimg.imread(f))) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/warped_undistorted_test_images.jpg" alt="warped_undistorted_test_images.jpg" width="800px" />
+</p>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">Pipeline</h3>
+<div class="outline-text-3" id="text-2-3">
+</div><div id="outline-container-sec-2-3-1" class="outline-4">
+<h4 id="sec-2-3-1">Gradient and Color Thresholds</h4>
+<div class="outline-text-4" id="text-2-3-1">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">scale</span>(img, factor=255.0):
+    <span style="color: #fcaf3e;">scale_factor</span> = np.<span style="color: #e090d7;">max</span>(img)/factor
+    <span style="color: #b4fa70;">return</span> (img/scale_factor).astype(np.uint8)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">derivative</span>(img, sobel_kernel=3):
+    <span style="color: #fcaf3e;">derivx</span> = np.absolute(cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=sobel_kernel))
+    <span style="color: #fcaf3e;">derivy</span> = np.absolute(cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=sobel_kernel))
+    <span style="color: #fcaf3e;">gradmag</span> = np.sqrt(derivx**2 + derivy**2)
+    <span style="color: #fcaf3e;">absgraddir</span> = np.arctan2(derivy, derivx)
+    <span style="color: #b4fa70;">return</span> scale(derivx), scale(derivy), scale(gradmag), absgraddir
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">grad</span>(img, k1=3, k2=15):
+    <span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">g</span>,<span style="color: #fcaf3e;">_</span> = derivative(img, sobel_kernel=k1)
+    <span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">p</span> = derivative(img, sobel_kernel=k2)
+    <span style="color: #b4fa70;">return</span> g,p
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">hls_select</span>(img):
+    <span style="color: #fcaf3e;">hsv</span> = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.<span style="color: #e090d7;">float</span>)
+    <span style="color: #fcaf3e;">h</span> = hsv[:,:,0]
+    <span style="color: #fcaf3e;">l</span> = hsv[:,:,1]
+    <span style="color: #fcaf3e;">s</span> = hsv[:,:,2]
+    <span style="color: #b4fa70;">return</span> h,l,s
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">rgb_select</span>(img):
+    <span style="color: #fcaf3e;">rgb</span> = img
+    <span style="color: #fcaf3e;">r</span> = rgb[:,:,0]
+    <span style="color: #fcaf3e;">g</span> = rgb[:,:,1]
+    <span style="color: #fcaf3e;">b</span> = rgb[:,:,2]
+    <span style="color: #b4fa70;">return</span> r,g,b
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">threshold</span>(img, thresh_min=0, thresh_max=255):
+    <span style="color: #fcaf3e;">binary_output</span> = np.zeros_like(img)
+    <span style="color: #fcaf3e;">binary_output</span>[(img &gt;= thresh_min) &amp; (img &lt;= thresh_max)] = 1
+    <span style="color: #b4fa70;">return</span> binary_output
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #fcaf3e;">land</span> = <span style="color: #b4fa70;">lambda</span> *x: np.logical_and.<span style="color: #e090d7;">reduce</span>(x)
+<span style="color: #fcaf3e;">lor</span> = <span style="color: #b4fa70;">lambda</span> *x: np.logical_or.<span style="color: #e090d7;">reduce</span>(x)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">highlight</span>(img):
+    <span style="color: #fcaf3e;">r</span>,<span style="color: #fcaf3e;">g</span>,<span style="color: #fcaf3e;">b</span> = rgb_select(img)
+    <span style="color: #fcaf3e;">h</span>,<span style="color: #fcaf3e;">l</span>,<span style="color: #fcaf3e;">s</span> = hls_select(img)
+    <span style="color: #fcaf3e;">o01</span> = threshold(r, 200, 255)
+    <span style="color: #fcaf3e;">o02</span> = threshold(g, 200, 255)
+    <span style="color: #fcaf3e;">o03</span> = threshold(s, 200, 255)
+    <span style="color: #b4fa70;">return</span> scale(lor(land(o01,o02),o03))
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/binary_undistorted_test_images.jpg"</span>,
+          (highlight(undistort(mpimg.imread(f))) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/binary_undistorted_test_images.jpg" alt="binary_undistorted_test_images.jpg" width="800px" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3-2" class="outline-4">
+<h4 id="sec-2-3-2">Perspective Transform</h4>
+<div class="outline-text-4" id="text-2-3-2">
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/warped_binary_undistorted_images.jpg"</span>,
+          (warp(highlight(undistort(mpimg.imread(f)))) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/warped_binary_undistorted_images.jpg" alt="warped_binary_undistorted_images.jpg" width="800px" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3-3" class="outline-4">
+<h4 id="sec-2-3-3">Lane-Finding</h4>
+<div class="outline-text-4" id="text-2-3-3">
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">detect_lines_sliding_window</span>(warped_binary):
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Assuming you have created a warped binary image called "warped_binary"</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Take a histogram of the bottom half of the image</span>
+    <span style="color: #fcaf3e;">histogram</span> = np.<span style="color: #e090d7;">sum</span>(warped_binary[warped_binary.shape[0]/2:,:], axis=0)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Create an output image to draw on and  visualize the result</span>
+    <span style="color: #fcaf3e;">out_img</span> = np.dstack((warped_binary, warped_binary, warped_binary))*255
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Find the peak of the left and right halves of the histogram</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">These will be the starting point for the left and right lines</span>
+    <span style="color: #fcaf3e;">midpoint</span> = np.<span style="color: #e090d7;">int</span>(histogram.shape[0]/2)
+    <span style="color: #fcaf3e;">leftx_base</span> = np.argmax(histogram[:midpoint])
+    <span style="color: #fcaf3e;">rightx_base</span> = np.argmax(histogram[midpoint:]) + midpoint
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Choose the number of sliding windows</span>
+    <span style="color: #fcaf3e;">nwindows</span> = 9
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Set height of windows</span>
+    <span style="color: #fcaf3e;">window_height</span> = np.<span style="color: #e090d7;">int</span>(warped_binary.shape[0]/nwindows)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Identify the x and y positions of all nonzero pixels in the image</span>
+    <span style="color: #fcaf3e;">nonzero</span> = warped_binary.nonzero()
+    <span style="color: #fcaf3e;">nonzeroy</span> = np.array(nonzero[0])
+    <span style="color: #fcaf3e;">nonzerox</span> = np.array(nonzero[1])
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Current positions to be updated for each window</span>
+    <span style="color: #fcaf3e;">leftx_current</span> = leftx_base
+    <span style="color: #fcaf3e;">rightx_current</span> = rightx_base
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Set the width of the windows +/- margin</span>
+    <span style="color: #fcaf3e;">margin</span> = 100
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Set minimum number of pixels found to recenter window</span>
+    <span style="color: #fcaf3e;">minpix</span> = 50
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Create empty lists to receive left and right lane pixel indices</span>
+    <span style="color: #fcaf3e;">left_lane_inds</span> = []
+    <span style="color: #fcaf3e;">right_lane_inds</span> = []
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Step through the windows one by one</span>
+    <span style="color: #b4fa70;">for</span> window <span style="color: #b4fa70;">in</span> <span style="color: #e090d7;">range</span>(nwindows):
+        <span style="color: #73d216;"># </span><span style="color: #73d216;">Identify window boundaries in x and y (and right and left)</span>
+        <span style="color: #fcaf3e;">win_y_low</span> = warped_binary.shape[0] - (window+1)*window_height
+        <span style="color: #fcaf3e;">win_y_high</span> = warped_binary.shape[0] - window*window_height
+        <span style="color: #fcaf3e;">win_xleft_low</span> = leftx_current - margin
+        <span style="color: #fcaf3e;">win_xleft_high</span> = leftx_current + margin
+        <span style="color: #fcaf3e;">win_xright_low</span> = rightx_current - margin
+        <span style="color: #fcaf3e;">win_xright_high</span> = rightx_current + margin
+        <span style="color: #73d216;"># </span><span style="color: #73d216;">Draw the windows on the visualization image</span>
+        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),(0,255,0), 2) 
+        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),(0,255,0), 2) 
+        <span style="color: #73d216;"># </span><span style="color: #73d216;">Identify the nonzero pixels in x and y within the window</span>
+        <span style="color: #fcaf3e;">good_left_inds</span> = ((nonzeroy &gt;= win_y_low) &amp; (nonzeroy &lt; win_y_high) &amp; (nonzerox &gt;= win_xleft_low) &amp; (nonzerox &lt; win_xleft_high)).nonzero()[0]
+        <span style="color: #fcaf3e;">good_right_inds</span> = ((nonzeroy &gt;= win_y_low) &amp; (nonzeroy &lt; win_y_high) &amp; (nonzerox &gt;= win_xright_low) &amp; (nonzerox &lt; win_xright_high)).nonzero()[0]
+        <span style="color: #73d216;"># </span><span style="color: #73d216;">Append these indices to the lists</span>
+        left_lane_inds.append(good_left_inds)
+        right_lane_inds.append(good_right_inds)
+        <span style="color: #73d216;"># </span><span style="color: #73d216;">If you found &gt; minpix pixels, recenter next window on their mean position</span>
+        <span style="color: #b4fa70;">if</span> <span style="color: #e090d7;">len</span>(good_left_inds) &gt; minpix:
+            <span style="color: #fcaf3e;">leftx_current</span> = np.<span style="color: #e090d7;">int</span>(np.mean(nonzerox[good_left_inds]))
+        <span style="color: #b4fa70;">if</span> <span style="color: #e090d7;">len</span>(good_right_inds) &gt; minpix:        
+            <span style="color: #fcaf3e;">rightx_current</span> = np.<span style="color: #e090d7;">int</span>(np.mean(nonzerox[good_right_inds]))
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Concatenate the arrays of indices</span>
+    <span style="color: #fcaf3e;">left_lane_inds</span> = np.concatenate(left_lane_inds)
+    <span style="color: #fcaf3e;">right_lane_inds</span> = np.concatenate(right_lane_inds)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Extract left and right line pixel positions</span>
+    <span style="color: #fcaf3e;">leftx</span> = nonzerox[left_lane_inds]
+    <span style="color: #fcaf3e;">lefty</span> = nonzeroy[left_lane_inds] 
+    <span style="color: #fcaf3e;">rightx</span> = nonzerox[right_lane_inds]
+    <span style="color: #fcaf3e;">righty</span> = nonzeroy[right_lane_inds] 
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Fit a second order polynomial to each</span>
+    <span style="color: #fcaf3e;">left_fit</span>,<span style="color: #fcaf3e;">left_res</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span> = np.polyfit(lefty, leftx, 2, full=<span style="color: #e9b2e3;">True</span>)
+    <span style="color: #fcaf3e;">right_fit</span>,<span style="color: #fcaf3e;">right_res</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span> = np.polyfit(righty, rightx, 2, full=<span style="color: #e9b2e3;">True</span>)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Generate x and y values for plotting</span>
+    <span style="color: #fcaf3e;">ploty</span> = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+    <span style="color: #fcaf3e;">left_fitx</span> = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    <span style="color: #fcaf3e;">right_fitx</span> = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+    <span style="color: #fcaf3e;">out_img</span>[ploty.astype(<span style="color: #e9b96e;">'int'</span>),left_fitx.astype(<span style="color: #e9b96e;">'int'</span>)] = [0, 255, 255]
+    <span style="color: #fcaf3e;">out_img</span>[ploty.astype(<span style="color: #e9b96e;">'int'</span>),right_fitx.astype(<span style="color: #e9b96e;">'int'</span>)] = [0, 255, 255]
+    <span style="color: #fcaf3e;">y_eval</span> = warped_binary.shape[0]
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Define conversions in x and y from pixels space to meters</span>
+    <span style="color: #fcaf3e;">ym_per_pix</span> = 30/720 <span style="color: #73d216;"># </span><span style="color: #73d216;">meters per pixel in y dimension</span>
+    <span style="color: #fcaf3e;">xm_per_pix</span> = 3.7/700 <span style="color: #73d216;"># </span><span style="color: #73d216;">meters per pixel in x dimension</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Fit new polynomials to x,y in world space</span>
+    <span style="color: #fcaf3e;">left_fit_cr</span> = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    <span style="color: #fcaf3e;">right_fit_cr</span> = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Calculate the new radii of curvature</span>
+    <span style="color: #fcaf3e;">left_curverad</span> = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    <span style="color: #fcaf3e;">right_curverad</span> = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    <span style="color: #b4fa70;">return</span> left_fit, right_fit, np.sqrt(left_fit[1]/<span style="color: #e090d7;">len</span>(leftx)), np.sqrt(right_fit[1]/<span style="color: #e090d7;">len</span>(rightx)), left_curverad, right_curverad, out_img
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/detected_lines_test_images.jpg"</span>,
+          (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/detected_lines_test_images.jpg" alt="detected_lines_test_images.jpg" width="800px" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">detect_lines</span>(warped_binary, left_fit, right_fit):
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">from the next frame of video (also called "binary_warped")</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">It's now much easier to find line pixels!</span>
+    <span style="color: #fcaf3e;">nonzero</span> = warped_binary.nonzero()
+    <span style="color: #fcaf3e;">nonzeroy</span> = np.array(nonzero[0])
+    <span style="color: #fcaf3e;">nonzerox</span> = np.array(nonzero[1])
+    <span style="color: #fcaf3e;">margin</span> = 100
+    <span style="color: #fcaf3e;">left_lane_inds</span> = ((nonzerox &gt; (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) &amp; (nonzerox &lt; (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin))) 
+    <span style="color: #fcaf3e;">right_lane_inds</span> = ((nonzerox &gt; (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) &amp; (nonzerox &lt; (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))  
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Again, extract left and right line pixel positions</span>
+    <span style="color: #fcaf3e;">leftx</span> = nonzerox[left_lane_inds]
+    <span style="color: #fcaf3e;">lefty</span> = nonzeroy[left_lane_inds] 
+    <span style="color: #fcaf3e;">rightx</span> = nonzerox[right_lane_inds]
+    <span style="color: #fcaf3e;">righty</span> = nonzeroy[right_lane_inds]
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Fit a second order polynomial to each</span>
+    <span style="color: #fcaf3e;">left_fit</span>,<span style="color: #fcaf3e;">left_res</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span> = np.polyfit(lefty, leftx, 2, full=<span style="color: #e9b2e3;">True</span>)
+    <span style="color: #fcaf3e;">right_fit</span>,<span style="color: #fcaf3e;">right_res</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span>,<span style="color: #fcaf3e;">_</span> = np.polyfit(righty, rightx, 2, full=<span style="color: #e9b2e3;">True</span>)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Generate x and y values for plotting</span>
+    <span style="color: #fcaf3e;">ploty</span> = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0] )
+    <span style="color: #fcaf3e;">left_fitx</span> = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    <span style="color: #fcaf3e;">right_fitx</span> = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    <span style="color: #fcaf3e;">y_eval</span> = warped_binary.shape[0]
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Define conversions in x and y from pixels space to meters</span>
+    <span style="color: #fcaf3e;">ym_per_pix</span> = 30/720 <span style="color: #73d216;"># </span><span style="color: #73d216;">meters per pixel in y dimension</span>
+    <span style="color: #fcaf3e;">xm_per_pix</span> = 3.7/700 <span style="color: #73d216;"># </span><span style="color: #73d216;">meters per pixel in x dimension</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Fit new polynomials to x,y in world space</span>
+    <span style="color: #fcaf3e;">left_fit_cr</span> = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    <span style="color: #fcaf3e;">right_fit_cr</span> = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Calculate the new radii of curvature</span>
+    <span style="color: #fcaf3e;">left_curverad</span> = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    <span style="color: #fcaf3e;">right_curverad</span> = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    <span style="color: #b4fa70;">return</span> left_fit, right_fit, np.sqrt(left_fit[1]/<span style="color: #e090d7;">len</span>(leftx)), np.sqrt(right_fit[1]/<span style="color: #e090d7;">len</span>(rightx)), left_curverad, right_curverad, <span style="color: #e9b2e3;">None</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">draw_lane</span>(undistorted, warped_binary, l_fit, r_fit, l_rad, r_rad, unwarp):
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Create an image to draw the lines on</span>
+    <span style="color: #fcaf3e;">warp_zero</span> = np.zeros_like(warped_binary).astype(np.uint8)
+    <span style="color: #fcaf3e;">color_warp</span> = np.dstack((warp_zero, warp_zero, warp_zero))
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Generate x and y values for plotting</span>
+    <span style="color: #fcaf3e;">ploty</span> = np.linspace(0, warped_binary.shape[0]-1, warped_binary.shape[0])
+    <span style="color: #fcaf3e;">l_fitx</span> = l_fit[0]*ploty**2 + l_fit[1]*ploty + l_fit[2]
+    <span style="color: #fcaf3e;">r_fitx</span> = r_fit[0]*ploty**2 + r_fit[1]*ploty + r_fit[2]
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Recast the x and y points into usable format for cv2.fillPoly()</span>
+    <span style="color: #fcaf3e;">pts_left</span> = np.array([np.transpose(np.vstack([l_fitx, ploty]))])
+    <span style="color: #fcaf3e;">pts_right</span> = np.array([np.flipud(np.transpose(np.vstack([r_fitx, ploty])))])
+    <span style="color: #fcaf3e;">pts</span> = np.hstack((pts_left, pts_right))
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Draw the lane onto the warped_binary blank image</span>
+    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Warp the blank back to original image space using inverse perspective matrix (Minv)</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])) </span>
+    <span style="color: #fcaf3e;">newwarp</span> = unwarp(color_warp)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Combine the result with the original image</span>
+    <span style="color: #fcaf3e;">result</span> = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Annotate image with lane curvature estimates</span>
+    cv2.putText(result, <span style="color: #e9b96e;">"L. Curvature: %.2f km"</span> % (l_rad/1000), (50,50), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2)
+    cv2.putText(result, <span style="color: #e9b96e;">"R. Curvature: %.2f km"</span> % (r_rad/1000), (50,80), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2)
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Annotate image with position estimate</span>
+    cv2.putText(result, <span style="color: #e9b96e;">"C. Position: %.2f m"</span> % ((np.average((l_fitx + r_fitx)/2) - warped_binary.shape[1]//2)*3.7/700), (50,110), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255), 2)
+    <span style="color: #b4fa70;">return</span> result
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python">visualize(<span style="color: #e9b96e;">"output_images/drawn_lanes_test_images.jpg"</span>, 
+          (get_processor(1)(mpimg.imread(f)) <span style="color: #b4fa70;">for</span> f <span style="color: #b4fa70;">in</span> cycle(glob.glob(<span style="color: #e9b96e;">"test_images/test*.jpg"</span>))))
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="output_images/drawn_lanes_test_images.jpg" alt="drawn_lanes_test_images.jpg" width="800px" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">get_processor</span>(nbins=10):
+    <span style="color: #fcaf3e;">bins</span> = nbins
+    <span style="color: #fcaf3e;">l_params</span> = deque(maxlen=bins)
+    <span style="color: #fcaf3e;">r_params</span> = deque(maxlen=bins)
+    <span style="color: #fcaf3e;">l_radius</span> = deque(maxlen=bins)
+    <span style="color: #fcaf3e;">r_radius</span> = deque(maxlen=bins)
+    <span style="color: #fcaf3e;">weights</span> = np.arange(1,bins+1)/bins
+    <span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">process_image</span>(img0):
+        <span style="color: #fcaf3e;">undistorted</span> = undistort(img0)
+        <span style="color: #fcaf3e;">warped_binary</span> = warp(highlight(undistorted))
+        <span style="color: #fcaf3e;">l_fit</span>, <span style="color: #fcaf3e;">r_fit</span>, <span style="color: #fcaf3e;">l_res</span>, <span style="color: #fcaf3e;">r_res</span>, <span style="color: #fcaf3e;">l_curverad</span>, <span style="color: #fcaf3e;">r_curverad</span>, <span style="color: #fcaf3e;">_</span> = detect_lines_sliding_window(warped_binary) <span style="color: #b4fa70;">if</span> <span style="color: #e090d7;">len</span>(l_params)==0 <span style="color: #b4fa70;">else</span> detect_lines(warped_binary,np.average(l_params,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]), np.average(r_params,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]))
+        l_params.append(l_fit)
+        r_params.append(r_fit)
+        l_radius.append(l_curverad)
+        r_radius.append(r_curverad)
+        <span style="color: #fcaf3e;">annotated_image</span> = draw_lane(undistorted,
+                                    warped_binary,
+                                    np.average(l_params,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]),
+                                    np.average(r_params,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]),
+                                    np.average(l_radius,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]),
+                                    np.average(r_radius,0,weights[-<span style="color: #e090d7;">len</span>(l_params):]),
+                                    unwarp)
+        <span style="color: #b4fa70;">return</span> annotated_image
+    <span style="color: #b4fa70;">return</span> process_image
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #fcaf3e;">process</span> = get_processor()
+<span style="color: #fcaf3e;">in_clip</span> = VideoFileClip(<span style="color: #e9b96e;">"project_video.mp4"</span>)
+<span style="color: #fcaf3e;">out_clip</span> = in_clip.fl_image(process)
+cProfile.run(<span style="color: #e9b96e;">'out_clip.write_videofile("output_images/project_output.mp4", audio=False)'</span>, <span style="color: #e9b96e;">'restats'</span>)
+</pre>
+</div>
+
+<iframe width="800" height="450" align="middle" src="https://www.youtube.com/embed/rkH9aivTA38" frameborder="0" allowfullscreen></iframe>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4">Discussion</h3>
+<div class="outline-text-3" id="text-2-4">
+</div><div id="outline-container-sec-2-4-1" class="outline-4">
+<h4 id="sec-2-4-1">What Worked Well</h4>
+</div>
+
+<div id="outline-container-sec-2-4-2" class="outline-4">
+<h4 id="sec-2-4-2">What Could Be Improved</h4>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: David A. Ventimiglia (<a href="mailto:dventimi@gmail.com">dventimi@gmail.com</a>)</p>
+<p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2017-02-08&gt;</span></span></p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

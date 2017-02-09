@@ -130,6 +130,42 @@
       <matplotlib.image.AxesImage object at 0x7fb71a14b2e8>
 #+end_example
 
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/annotated_calibration_images.jpg]]
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      def visualize(filename, a):
+          fig, axes = plt.subplots(2,3,figsize=(24,12),subplot_kw={'xticks':[],'yticks':[]})
+          fig.subplots_adjust(hspace=0.03, wspace=0.05)
+          for p in zip(sum(axes.tolist(),[]), a):
+              p[0].imshow(p[1],cmap='gray')
+          plt.tight_layout()
+          fig.savefig(filename)
+          plt.close()
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/test_images.jpg",
+                (mpimg.imread(f) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/test_images.jpg]]
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/undistorted_test_images.jpg",
+                (undistort(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/undistorted_test_images.jpg]]
+
 ***** Perspective Measurement
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
@@ -177,9 +213,30 @@
 
       #+RESULTS:
 
-*** Pipeline
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/figure_3-1.png]]
 
-***** Distortion-Corrected Image
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/figure_3-2.png]]
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/figure_3-3.png]]
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/figure_3-4.png]]
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/warped_undistorted_test_images.jpg",
+                (warp(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/warped_undistorted_test_images.jpg]]
+
+
+*** Pipeline
 
 ***** Gradient and Color Thresholds
 
@@ -249,10 +306,6 @@
 
       #+RESULTS:
 
-***** Perspective Transform
-
-***** Lane-Finding
-
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def highlight(img):
           r,g,b = rgb_select(img)
@@ -264,6 +317,30 @@
       #+END_SRC
 
       #+RESULTS:
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/binary_undistorted_test_images.jpg",
+                (highlight(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/binary_undistorted_test_images.jpg]]
+
+***** Perspective Transform
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/warped_binary_undistorted_images.jpg",
+                (warp(highlight(undistort(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/warped_binary_undistorted_images.jpg]]
+
+***** Lane-Finding
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def detect_lines_sliding_window(warped_binary):
@@ -353,6 +430,17 @@
       #+RESULTS:
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/detected_lines_test_images.jpg",
+                (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] for f in cycle(glob.glob("test_images/test*.jpg"))))
+
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/detected_lines_test_images.jpg]]
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def detect_lines(warped_binary, left_fit, right_fit):
           # from the next frame of video (also called "binary_warped")
           # It's now much easier to find line pixels!
@@ -420,6 +508,16 @@
       #+RESULTS:
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
+      visualize("output_images/drawn_lanes_test_images.jpg", 
+                (get_processor(1)(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
+      #+END_SRC
+
+      #+RESULTS:
+
+      #+ATTR_HTML: :width 800px
+      [[file:output_images/drawn_lanes_test_images.jpg]]
+
+      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       def get_processor(nbins=10):
           bins = nbins
           l_params = deque(maxlen=bins)
@@ -449,44 +547,6 @@
       #+RESULTS:
 
       #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
-      def visualize(filename, a):
-          fig, axes = plt.subplots(2,3,figsize=(24,12),subplot_kw={'xticks':[],'yticks':[]})
-          fig.subplots_adjust(hspace=0.03, wspace=0.05)
-          for p in zip(sum(axes.tolist(),[]), a):
-              p[0].imshow(p[1],cmap='gray')
-          plt.tight_layout()
-          fig.savefig(filename)
-          plt.close()
-      #+END_SRC
-
-      #+RESULTS:
-
-      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
-      visualize("output_images/test_images.jpg",
-                (mpimg.imread(f) for f in cycle(glob.glob("test_images/test*.jpg"))))
-       
-      visualize("output_images/undistorted_test_images.jpg",
-                (undistort(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
-       
-      visualize("output_images/warped_undistorted_test_images.jpg",
-                (warp(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
-       
-      visualize("output_images/binary_undistorted_test_images.jpg",
-                (highlight(undistort(mpimg.imread(f))) for f in cycle(glob.glob("test_images/test*.jpg"))))
-       
-      visualize("output_images/warped_binary_undistorted_images.jpg",
-                (warp(highlight(undistort(mpimg.imread(f)))) for f in cycle(glob.glob("test_images/test*.jpg"))))
-       
-      visualize("output_images/detected_lines_test_images.jpg",
-                (detect_lines_sliding_window(warp(highlight(undistort(mpimg.imread(f)))))[6] for f in cycle(glob.glob("test_images/test*.jpg"))))
-
-      visualize("output_images/drawn_lanes_test_images.jpg", 
-                (get_processor(1)(mpimg.imread(f)) for f in cycle(glob.glob("test_images/test*.jpg"))))
-      #+END_SRC
-
-      #+RESULTS:
-
-      #+BEGIN_SRC python :results output :session :tangle lanelines.py :comments org :exports code
       process = get_processor()
       in_clip = VideoFileClip("project_video.mp4")
       out_clip = in_clip.fl_image(process)
@@ -499,6 +559,8 @@
       : [MoviePy] Writing video output_images/project_output.mp4
       : [MoviePy] Done.
       : [MoviePy] >>>> Video ready: output_images/project_output.mp4
+
+      #+HTML: <iframe width="800" height="450" align="middle" src="https://www.youtube.com/embed/rkH9aivTA38" frameborder="0" allowfullscreen></iframe>
 
 *** Discussion
 
