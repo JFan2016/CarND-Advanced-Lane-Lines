@@ -1,4 +1,4 @@
-% Created 2017-02-09 Thu 13:14
+% Created 2017-02-09 Thu 15:31
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -33,9 +33,6 @@
 \section*{Introduction}
 \label{sec-1}
 
-\section*{Methods}
-\label{sec-2}
-
 The goals / steps of this project are the following:
 
 \begin{itemize}
@@ -55,7 +52,7 @@ estimation of lane curvature and vehicle position.
 \end{itemize}
 
 \subsection*{Setup}
-\label{sec-2-1}
+\label{sec-1-1}
 
 The initial setup includes creating the \href{https://www.python.org/}{Python} environment with
 the packages that the project needs and uses.
@@ -85,6 +82,7 @@ to import the packages that are used.
 from collections import deque
 from itertools import groupby, islice, zip_longest, cycle, filterfalse
 from moviepy.editor import VideoFileClip
+from mpl_toolkits.axes_grid1 import ImageGrid
 import cProfile
 import cv2
 import glob
@@ -107,7 +105,7 @@ makes use of these standard-library library packages.
 
 
 \subsection*{Processing Pipeline}
-\label{sec-2-2}
+\label{sec-1-2}
 
 In order to detect lane lines in a video of a car driving on a
 road, and then generate an annotated video with the detected lane
@@ -135,7 +133,7 @@ Let us examine these preliminary tasks and pipeline stages in
 greater detail.
 
 \subsubsection*{Camera Calibration}
-\label{sec-2-2-1}
+\label{sec-1-2-1}
 
 \href{http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html}{Camera calibration} measures the distortion inherent in cameras
 that utilize lenses so that the images taken with the camera can
@@ -174,7 +172,7 @@ def measure_distortion(calibration_files):
 This function is used in subsequent distortion corrections.
 
 \subsubsection*{Distortion Correction}
-\label{sec-2-2-2}
+\label{sec-1-2-2}
 
 The \texttt{get\_undistorter} function takes a sequence of calibration
 checkerboard image filenames, applies the \texttt{measure\_distortion}
@@ -206,11 +204,37 @@ The annotated calibration images are shown in the figure below.
 
 \includegraphics[width=.9\linewidth]{output_images/annotated_calibration_images.jpg}
 
-We show the effects of applying the image undistorter to a
+As discussed shortly, the effects of image distortion can be
+subtle and difficult notice with the naked eye.  It helps
+therefore to apply it to examples where the effect will be more
+vivid.  The first of the camera calibration images that we
+recently used to \emph{measure} the camera distortion is a good
+candidate for \emph{correcting} distortion.  The following figure has
+the original, distorted image.
+
+\includegraphics[width=.9\linewidth]{camera_cal/calibration1.jpg}
+
+It should be evident at a minimum that there is radial
+distortion as the horizontal and vertical lines---which should
+be straight---are curved outward from the center.
+
+Next we use the camera matrix and distortion coefficients
+embedded with in the \texttt{undistort} function that we obtained in
+order to correct for these effects.  
+
+\begin{verbatim}
+fig = plt.figure()
+plt.imshow(undistort(mpimg.imread("camera_cal/calibration1.jpg")))
+fig.savefig("output_images/undistorted_calibration1.jpg")
+\end{verbatim}
+
+\includegraphics[width=.9\linewidth]{output_images/undistorted_calibration1.jpg}
+
+Next, we show the effects of applying the image undistorter to a
 sequence of 6 road images taken with this same camera.  These 6
 images are a test sequence that will reappear many times through
 the remainder of this discussion as other image processing steps
-are taken up.  
+are taken up.
 
 The \texttt{visualize} function helps us view a gallery of test images
 in "ganged up" layout, and this is helpful as we develop the
@@ -253,7 +277,7 @@ visualize("output_images/undistorted_test_images.jpg",
 Next, we move on to perspective measurement.
 
 \subsubsection*{Perspective Measurement}
-\label{sec-2-2-3}
+\label{sec-1-2-3}
 
 Perspective measurement applies to two-dimensional images taken
 of three-dimensional scenes wherein objects of
@@ -348,7 +372,7 @@ warp,unwarp,M,Minv = get_warpers(undistort(mpimg.imread("test_images/straight_li
 \end{verbatim}
 
 The next sequence of four figures illustrates the interactive
-experiene the user has in this operation, showing step-by-step
+experience the user has in this operation, showing step-by-step
 the orthogonal guidelines that appear.  The trapezoidal area
 formed bout the outside bottom two corners and the inside top
 two corners of the last figure defines the source region that is
@@ -395,14 +419,14 @@ pipeline.  Another set of essential pipeline steps involve
 gradient ant color thresholds, discussed in the next sections.  
 
 \subsubsection*{Gradient and Color Thresholds}
-\label{sec-2-2-4}
+\label{sec-1-2-4}
 
 Next we develop a set of useful utility functions for scaling
 images, taking gradients across them, isolating different color
 channels, and generating binary images.
 
 The \texttt{scale} function scales the values of NumPy image arrays to
-arbitray ranges (e.g., [0,1] or [0,255]).  The default range is
+arbitrary ranges (e.g., [0,1] or [0,255]).  The default range is
 [0,255], and this is useful in order to give all images the same
 scale.  Different operations (e.g., taking gradients, producing
 binary images) can introduce different scales and it eases
@@ -416,7 +440,7 @@ def scale(img, factor=255.0):
 
 The \texttt{derivative} function uses the OpenCV \href{http://docs.opencv.org/2.4/modules/imgproc/doc/filtering.html#sobel}{\texttt{sobel}} function to
 apply the \href{https://en.wikipedia.org/wiki/Sobel_operator}{Sobel operator} in order to estimate derivatives in the
-$x$ and $y$ directions acoss the image.  For good measure, it
+$x$ and $y$ directions across the image.  For good measure, it
 also returns both the \emph{magnitude} and the \emph{direction} of the
 \href{https://en.wikipedia.org/wiki/Gradient}{gradient} computed from these derivative estimates.  
 
@@ -433,8 +457,8 @@ The \texttt{grad} function adapts the \texttt{derivative} function to return
 both the gradient \emph{magnitude} and \emph{direction}.  You might wonder
 what this function adds to the \texttt{derivative} function, and that
 is a valid consideration.  Largely it exists because the lecture
-notes seemed to suggest that it's wortwhile to use different
-kernal sizes for the Sobel operator when computing the gradient
+notes seemed to suggest that it's worthwhile to use different
+kernel sizes for the Sobel operator when computing the gradient
 direction.  In hindsight it's not clear this function really is
 adding value and it may be removed in future versions.
 
@@ -532,7 +556,7 @@ visualize("output_images/binary_undistorted_test_images.jpg",
 \includegraphics[width=.9\linewidth]{output_images/binary_undistorted_test_images.jpg}
 
 \subsubsection*{Perspective Transform}
-\label{sec-2-2-5}
+\label{sec-1-2-5}
 
 Armed with a pipeline which, based on the 6 test images, we
 believe may be a good candidate for detecting lane lines, we
@@ -547,7 +571,7 @@ visualize("output_images/warped_binary_undistorted_images.jpg",
 \includegraphics[width=.9\linewidth]{output_images/warped_binary_undistorted_images.jpg}
 
 \subsubsection*{Lane-Finding}
-\label{sec-2-2-6}
+\label{sec-1-2-6}
 
 Lane-line detection can be done somewhat laboriously--but
 perhaps more accurately--using a "sliding window" technique.
@@ -581,7 +605,7 @@ Moreover, we also perform a few somewhat ancillary operations
 while we're at it.
 
 \begin{enumerate}
-\item Draw the slinding windows, the selected pixels, and the
+\item Draw the sliding windows, the selected pixels, and the
 modeled quadratic curve onto a copy of the image.
 \item Recompute the function fit after scaling the pixel locations
 to real world values, then use these model fit parameters to
@@ -600,6 +624,8 @@ The function \texttt{detect\_lines\_sliding\_window} returns quite a few values:
 \item annotated image, with sliding windows, selected pixels, and
 modeled curves
 \end{enumerate}
+
+The code for this function is shown here. 
 
 \begin{verbatim}
 def detect_lines_sliding_window(warped_binary):
@@ -719,7 +745,7 @@ pixels.  Thus, it avoids the labor of the sliding window
 technique so long as one already has a good estimate of the
 model fit parameters.  Note that, because this function does
 \emph{not} apply the sliding window technique, it cannot draw the
-sliding windows.  Therefore, the last parameter returned isn
+sliding windows.  Therefore, the last parameter returned is
 \texttt{None}.  
 
 \begin{verbatim}
@@ -773,7 +799,8 @@ not be correct, because that fit does not account for the
 warping between the three-dimensional real world and the
 two-dimensional pixel-space of the image plane.  Third, for the
 left and right lanes we calculate the radius of curvature using
-the model fit parameters, according to this formula.
+the model fit parameters, according to this formula, where $A$
+and $B$ are fit parameters.
 
 \[ R_{curve} = \frac{\left(1 + \left(2 A y +
       B\right)^2\right)^{3/2}}{\left| 2 A \right|} \]
@@ -833,7 +860,16 @@ plane.  It plays no role in calculating the car position, but
 \emph{only} if we assume that position is to be taken at the bottom
 of the image.
 
-With that note, finally we can move on to the full processing
+Note also that as we annotate the image with the radius of
+curvature for the left and right lanes, we divide the
+distances, which were calculated in meters, by a factor of 1000
+in order to present them in kilometers.  Given the geometry of
+the problem and the distances involved, I argue that kilometers
+and not meters are the natural scale length.  Distances in
+meters can be provided upon request, or simply calculated in the
+reader's head.
+
+With those notes, finally we can move on to the full processing
 pipeline.  
 
 The \texttt{get\_processor} function returns a "processor" function.  A
@@ -857,7 +893,7 @@ buffers" for the left lane parameters, right lane parameters,
 left lane radius, and right lane radius.  The buffers can be of
 any size, though the default has 10 slots.  Note that a buffer
 size of 1 essentially computes no average at all.  Weighted
-verages are taken accross these buffers.  The weights could be
+averages are taken across these buffers.  The weights could be
 taken from any function, simple or complex, that is appropriate
 for the situation.  In practice I did not try for anything
 complicated, and used a simple linear weighting scheme:  older
@@ -904,7 +940,7 @@ Finally, generate a new processor and apply it to the video
 stream.  We generate a new processor in order to give it a
 different buffer size for the ring buffers supporting the
 weighted averages.  For the video stream, the ring buffers have
-50 slots, not 10.  Sinc ethe video stream is at 25 frames per
+50 slots, not 10.  Since the video stream is at 25 frames per
 second, this constitutes a full 2 second window for the weighted
 average.  That may seem like a lot, and we \emph{do} have to be
 careful not to push it too far.  There is a trade-off between
@@ -924,12 +960,195 @@ We can see the result for the project video in the following
 video clip.
 
 \subsection*{Discussion}
-\label{sec-2-3}
+\label{sec-1-3}
+
+This was a \emph{very} challenging project, perhaps the most
+challenging so far in this course.  
 
 \subsubsection*{What Worked Well}
-\label{sec-2-3-1}
+\label{sec-1-3-1}
+
+\begin{itemize}
+\item Alternate Color-Spaces
+\label{sec-1-3-1-1}
+
+If the reader refers back to the \texttt{highlight} function
+described above, and which is a key function that combines
+various aspects of image analysis together in order to
+highlight the lane lines, he or she should notice certain
+things.  In particular, it only uses color-spaces:  RBG and
+HLS, and within those, only certain channels.  
+
+In the exploratory phase of this project, it seemed that in
+the RGB color-space, the Red (R) and Green (G) colors
+independently were somewhat effective in picking out lane
+lines and better when combined with an \emph{AND} operation.  This
+surprised me somewhat, and still warrants further
+investigation.  The drawback was that while these channels
+worked well in good lighting conditions, they performed poorly
+in shadows.  
+
+Moreover, the Saturation (S) channel in the HLS color-space
+also was \emph{very} effective in highlighting lines under various
+lighting conditions.  Its drawback is that it highlights too
+many other features as well, like other cars and
+discolorations on the road.  
+
+Finally, slicing out and applying thresholds to color-spaces
+seems to be a relatively inexpensive operation
+computationally, which is important for rapid iteration.
+
+\item Color Thresholding
+\label{sec-1-3-1-2}
+
+Naturally, along with both color and gradient computation one
+typically will apply a threshold in order to obtain a binary
+image with "activated" pixels associated with lane-lines.
+This worked well, of course, but more important judicious use
+of thresholds was somewhat effective in mitigating the
+spurious features that the color-spaces brought in, such as
+road discolorations.
+
+\item Perspective Transform
+\label{sec-1-3-1-3}
+
+Of course, performing a perspective transform to a bird's-eye
+view is almost a necessary component of a project like this.
+However, it also had another unexpected benefit.  As alluded
+to above, it naturally shoves portions of the image outside of
+the trapezoidal source region \emph{outside} the frame when the
+transform is applied.  I had anticipated a need for a masking
+operation on the image, but found that I did not need it as
+the perspective transform naturally did most or all of the
+masking for me.  
+
+\item Lane Detection
+\label{sec-1-3-1-4}
+
+I adapted both the sliding window and non-sliding window lane
+detection algorithms almost exactly as they were presented in
+the lecture notes, and they worked perfectly, without a
+hitch.  
+
+\item Radius-of-Curvature and Car Position Calculation
+\label{sec-1-3-1-5}
+
+Likewise, I applied the radius-of-curvature calculation almost
+exactly as presented in the lecture material, and it also
+worked well.  As for the car position calculation, it turned
+out to be quite trivial. 
+
+\item Buffering
+\label{sec-1-3-1-6}
+
+Using a ring-buffer with the Python \href{https://docs.python.org/2/library/collections.html#collections.deque}{\texttt{deque}} data structure
+along with the Numpy \href{https://docs.scipy.org/doc/numpy/reference/generated/numpy.average.html#numpy-average}{\texttt{average}} function made it \emph{very} easy to
+implement a weighted average over some number of previous
+frames.  Not only did this smooth out the line detections,
+lane drawings, and distance calculations, it also had the
+added benefit of significantly increasing the robustness of
+the whole pipeline.  Without buffering---and without a
+mechanism for identifying and discarding bad detections---the
+lane would often bend and swirl in odd directions as it became
+confused by spurious data from shadows, road discolorations,
+etc.  With buffering \textbf{almost} all of that went away, even
+without discarding bad detections.  If you pay close attention
+to the video, near the very end at around the 48s mark, the
+drawn lane is slightly attracted to and bends slightly toward
+the black car that is passing on the right.  Without
+buffering, this was a significant problem.  With more work on
+the combination of gradient and color thresholds and perhaps
+by discarding bad detections this problem would have been
+eliminated.  However, I found that most of it could be
+banished simply with buffering.  
+
+\item Python Generators
+\label{sec-1-3-1-7}
+
+I continue to be pleased with the ease of composition in a
+functional style that is enabled by use of \href{http://davidaventimiglia.com/python_generators.html}{Python generators}.
+Wrapping generators for filenames, images, and the output of
+other functions in the \href{https://docs.python.org/3/library/itertools.html#itertools.cycle}{\texttt{cycle}} generator from \href{https://docs.python.org/3/library/itertools.html}{itertools} was a
+mainstay, especially for the 6 test images.  This was because
+I could cycle through the processed images either one by one,
+or in batches of 6, right in the Python interpreter.  It was
+very effective for debugging.
+\end{itemize}
+
+\subsubsection*{What Did Not Work Well}
+\label{sec-1-3-2}
+
+\begin{itemize}
+\item Gradient Thresholding
+\label{sec-1-3-2-1}
+
+I found it very difficult to coax much usable signal out of
+the gradient calculations and was grateful that I could get by
+without them.
+
+Moreover, the gradient calculations I was performing added
+\emph{significant} computational overhead.  With gradient
+thresholding and color thresholding it took approximately 15
+minutes to process the project video.  With just color
+thresholding I cut that time by a third, down to just 5
+minutes.  No doubt some of this is do to the \texttt{arctan2}
+function that computes the gradient direction, since \texttt{arctan2}
+is known to be an expensive operation.  Nevertheless, the
+profiler that I used did show significant time spent just in
+the \texttt{sobel} operation as well.
+\end{itemize}
 
 \subsubsection*{What Could Be Improved}
-\label{sec-2-3-2}
+\label{sec-1-3-3}
+
+\begin{itemize}
+\item Gradient and Color Thresholding
+\label{sec-1-3-3-1}
+
+There is almost as much art as there is science in
+highlighting the lane lines (and \emph{just} the lane lines)
+robustly, in a wide range of conditions.  There are many
+hyper-parameters and many many ways to combine these
+operations.  I spent considerable time on this aspect of the
+project yet never stumbled upon a "magic" combination that
+worked very well in all conditions.  At present I have settled
+for simple combination of color thresholds with no gradients
+and only middling performance.  I'm sure I can do better.
+
+\item Discarding Bad Detections
+\label{sec-1-3-3-2}
+
+I started down the path of discarding bad line detections,
+which is why I adapted the Numpy \href{https://docs.scipy.org/doc/numpy/reference/generated/numpy.polyfit.html#numpy-polyfit}{\texttt{polyfit}} function to return
+residuals, but on the project video at least I found that with
+buffering I did not need to do this.  Nevertheless, I think it
+would be prudent to add it in order to make the pipeline more
+robust.  
+
+\item Code Refactoring
+\label{sec-1-3-3-3}
+
+There is a great deal of code duplication, especially between
+the \texttt{detect\_lines\_sliding\_window} and \texttt{detect\_lines}
+functions.  Also, the car position calculation probably should
+not be performed in the \texttt{draw\_lane} function.  These blemishes
+are far from fatal and removing them is not part of the
+project, but they make that part of the code unwieldy,
+difficult to maintain, and somewhat difficult to read.  I
+would definitely refactor this portion of the code in
+subsequent revisions.  
+
+\item Measuring Perspective
+\label{sec-1-3-3-4}
+
+As discussed above, the target region for the perspective
+transform is hard-coded to be a rectangle from the bottom of
+the image to the top, 300 pixels in from the left edge and 300
+pixels in from the right edge.  While this worked well in the
+end, it only was brought about by trial-and-error, and is not
+very flexible.  It would be better to adapt the \texttt{measure\_warp}
+function so that the user has more freedom in specifying this
+region.
+\end{itemize}
 % <a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)
 \end{document}

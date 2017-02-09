@@ -1,7 +1,5 @@
 # Introduction
 
-# Methods
-
 The goals / steps of this project are the following:
 
 -   Compute the camera calibration matrix and distortion coefficients
@@ -301,7 +299,7 @@ functions.  It also returns the \(M\) and \(M_{inv}\) matrices as
     warp,unwarp,M,Minv = get_warpers(undistort(mpimg.imread("test_images/straight_lines2.jpg")))
 
 The next sequence of four figures illustrates the interactive
-experiene the user has in this operation, showing step-by-step
+experience the user has in this operation, showing step-by-step
 the orthogonal guidelines that appear.  The trapezoidal area
 formed bout the outside bottom two corners and the inside top
 two corners of the last figure defines the source region that is
@@ -352,7 +350,7 @@ images, taking gradients across them, isolating different color
 channels, and generating binary images.
 
 The `scale` function scales the values of NumPy image arrays to
-arbitray ranges (e.g., [0,1] or [0,255]).  The default range is
+arbitrary ranges (e.g., [0,1] or [0,255]).  The default range is
 [0,255], and this is useful in order to give all images the same
 scale.  Different operations (e.g., taking gradients, producing
 binary images) can introduce different scales and it eases
@@ -364,7 +362,7 @@ combining and comparing images when they have the same scale.
 
 The `derivative` function uses the OpenCV [`sobel`](http://docs.opencv.org/2.4/modules/imgproc/doc/filtering.html#sobel) function to
 apply the [Sobel operator](https://en.wikipedia.org/wiki/Sobel_operator) in order to estimate derivatives in the
-\(x\) and \(y\) directions acoss the image.  For good measure, it
+\(x\) and \(y\) directions across the image.  For good measure, it
 also returns both the *magnitude* and the *direction* of the
 [gradient](https://en.wikipedia.org/wiki/Gradient) computed from these derivative estimates.  
 
@@ -379,8 +377,8 @@ The `grad` function adapts the `derivative` function to return
 both the gradient *magnitude* and *direction*.  You might wonder
 what this function adds to the `derivative` function, and that
 is a valid consideration.  Largely it exists because the lecture
-notes seemed to suggest that it's wortwhile to use different
-kernal sizes for the Sobel operator when computing the gradient
+notes seemed to suggest that it's worthwhile to use different
+kernel sizes for the Sobel operator when computing the gradient
 direction.  In hindsight it's not clear this function really is
 adding value and it may be removed in future versions.
 
@@ -506,7 +504,7 @@ lane-line.  We do this both for the left and right lines.
 Moreover, we also perform a few somewhat ancillary operations
 while we're at it.
 
-1.  Draw the slinding windows, the selected pixels, and the
+1.  Draw the sliding windows, the selected pixels, and the
     modeled quadratic curve onto a copy of the image.
 2.  Recompute the function fit after scaling the pixel locations
     to real world values, then use these model fit parameters to
@@ -639,7 +637,7 @@ pixels.  Thus, it avoids the labor of the sliding window
 technique so long as one already has a good estimate of the
 model fit parameters.  Note that, because this function does
 *not* apply the sliding window technique, it cannot draw the
-sliding windows.  Therefore, the last parameter returned isn
+sliding windows.  Therefore, the last parameter returned is
 `None`.  
 
     def detect_lines(warped_binary, left_fit, right_fit):
@@ -781,7 +779,7 @@ buffers" for the left lane parameters, right lane parameters,
 left lane radius, and right lane radius.  The buffers can be of
 any size, though the default has 10 slots.  Note that a buffer
 size of 1 essentially computes no average at all.  Weighted
-verages are taken accross these buffers.  The weights could be
+averages are taken across these buffers.  The weights could be
 taken from any function, simple or complex, that is appropriate
 for the situation.  In practice I did not try for anything
 complicated, and used a simple linear weighting scheme:  older
@@ -824,7 +822,7 @@ Finally, generate a new processor and apply it to the video
 stream.  We generate a new processor in order to give it a
 different buffer size for the ring buffers supporting the
 weighted averages.  For the video stream, the ring buffers have
-50 slots, not 10.  Sinc ethe video stream is at 25 frames per
+50 slots, not 10.  Since the video stream is at 25 frames per
 second, this constitutes a full 2 second window for the weighted
 average.  That may seem like a lot, and we *do* have to be
 careful not to push it too far.  There is a trade-off between
@@ -911,7 +909,7 @@ challenging so far in this course.
 
     Likewise, I applied the radius-of-curvature calculation almost
     exactly as presented in the lecture material, and it also
-    worked well.  As for the car position calculaton, it turned
+    worked well.  As for the car position calculation, it turned
     out to be quite trivial. 
 
 -   Buffering
@@ -963,7 +961,7 @@ challenging so far in this course.
     thresholding I cut that time by a third, down to just 5
     minutes.  No doubt some of this is do to the `arctan2`
     function that computes the gradient direction, since `arctan2`
-    is kwown to be an expensive operation.  Nevertheless, the
+    is known to be an expensive operation.  Nevertheless, the
     profiler that I used did show significant time spent just in
     the `sobel` operation as well.
 
