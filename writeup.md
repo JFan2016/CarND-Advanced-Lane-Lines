@@ -21,11 +21,20 @@ The goals / steps of this project are the following:
 The initial setup includes creating the [Python](https://www.python.org/) environment with
 the packages that the project needs and uses.
 
-**NOTE**:  The code for this project can be found in the
+**NOTE I**:  The code for this project can be found in the
 repository's [lanelines.py](lanelines.py) file.  *However*, all of the code in
 that file was generated directly from the code blocks that appear
 in this file and as such, contain no new information.  Reviewers
 can consult either that Python file or this document.
+
+**NOTE II**:  This document is presented in a variety of formats.
+There is this Emacs Org-Mode [file](writeup.md), a [PDF](writeup.pdf) generated using *LaTeX*,
+an [HTML](writeup.html) file, and a [Markdown](writeup.md) file.  The Markdown file will be
+rendered directly by GitHub when viewed on the web.  The HTML
+version can be rendered either by cloning the repository to your
+own computer and opening the file in a browser locally.  Or, you
+can view the same file in GitHub Pages at [this link](https://dventimi.github.io/CarND-Advanced-Lane-Lines/writeup.html).  It looks
+quite a bit better than the GitHub-rendered Markdown version.
 
 -   **[matplotlib](http://matplotlib.org/):** plotting and image processing tools
 -   **[NumPy](http://www.numpy.org/):** foundational scientific computing library
