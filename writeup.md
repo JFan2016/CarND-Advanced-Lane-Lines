@@ -21,6 +21,12 @@ The goals / steps of this project are the following:
 The initial setup includes creating the [Python](https://www.python.org/) environment with
 the packages that the project needs and uses.
 
+**NOTE**:  The code for this project can be found in the
+repository's [lanelines.py](lanelines.py) file.  *However*, all of the code in
+that file was generated directly from the code blocks that appear
+in this file and as such, contain no new information.  Reviewers
+can consult either that Python file or this document.
+
 -   **[matplotlib](http://matplotlib.org/):** plotting and image processing tools
 -   **[NumPy](http://www.numpy.org/):** foundational scientific computing library
 -   **[MoviePy](http://zulko.github.io/moviepy/):** video processing tools
