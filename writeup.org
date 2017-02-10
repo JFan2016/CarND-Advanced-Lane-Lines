@@ -43,6 +43,12 @@
 
 *** Setup
 
+    *NOTE*:  The code for this project can be found in the
+    repository's [[file:lanelines.py][lanelines.py]] file.  /However/, all of the code in
+    that file was generated directly from the code blocks that appear
+    in this file and as such, contain no new information.  Reviewers
+    can consult either that Python file or this document.
+
     The initial setup includes creating the [[https://www.python.org/][Python]] environment with
     the packages that the project needs and uses.
 

@@ -8,7 +8,7 @@
 
 * Camera Calibration
 
-*** TODO Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+*** DONE Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
 * Pipeline (test images)
 
@@ -30,12 +30,12 @@
 
 * Discussion
 
-*** TODO Briefly discuss any problems / issues you faced in your implementation of this project. Where will your pipeline likely fail? What could you do to make it more robust?
+*** DONE Briefly discuss any problems / issues you faced in your implementation of this project. Where will your pipeline likely fail? What could you do to make it more robust?
 
 * Suggestions to Make Your Project Stand Out!
 
 *** DONE For a standout submission, students should follow the suggestion in the lesson to not just search blindly for the lane lines in each frame of video, but rather, once they have a high-confidence detection, use that to inform the search for the position of the lines in subsequent frames of video. For example, if a polynomial fit was found to be robust in the previous frame, then rather than search the entire next frame for the lines, just a window around the previous detection could be searched. This will improve speed and provide a more robust method for rejecting outliers.
 
-*** TODO For an additional improvement students should implement outlier rejection and use a low-pass filter to smooth the lane detection over frames, meaning add each new detection to a weighted mean of the position of the lines to avoid jitter.
+*** DONE For an additional improvement students should implement outlier rejection and use a low-pass filter to smooth the lane detection over frames, meaning add each new detection to a weighted mean of the position of the lines to avoid jitter.
 
 *** TODO For students who really want to go above and beyond, implement these methods on the challenge videos as well, or on your their own videos they've recorded themselves.
